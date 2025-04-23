@@ -1,0 +1,93 @@
+/* --- Global Styles & Variables --- */
+:root {
+    --font-family: 'Inter', sans-serif;
+    --bg-color: #eef2f9; /* Lighter blueish background */
+    --panel-bg: #ffffff;
+    --header-bg: #1a5276; /* Deeper Blue */
+    --header-text: #fdfefe;
+    --text-color: #212f3d; /* Darker Text */
+    --text-light: #566573;
+    --border-color: #d6dbdf;
+    --shadow-color: rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
+    --primary-color: #3498db; /* Blue */
+    --primary-hover: #2e86c1;
+    --secondary-color: #abb2b9; /* Grey */
+    --secondary-hover: #909497;
+    --success-color: #2ecc71; /* Green */
+    --success-hover: #28b463;
+    --danger-color: #e74c3c; /* Red */
+    --danger-hover: #cb4335;
+    --warning-color: #f39c12; /* Orange */
+    --warning-hover: #d68910;
+    --info-color: #5dade2; /* Lighter Blue */
+    --hover-bg: #f4f6f6;
+
+    /* Map/Grid Colors */
+    --grid-bg: #f4f6f6; /* Light map background */
+    --grid-line: #e5e7eb;
+    --cell-empty: transparent; /* Make empty cells transparent */
+    --cell-road: #d5dbdb; /* Road color (if drawing them) - optional */
+    --cell-depot: #af7ac5; /* Purple for Depot */
+    --cell-delivery: #f5b041; /* Amber/Orange for deliveries */
+    --truck-color: var(--danger-color);
+    --current-path-color: rgba(52, 152, 219, 0.7); /* Blueish path */
+    --final-route-color: var(--success-color); /* Green for final route */
+
+    --base-font-size: 14px;
+    --border-radius: 0.375rem;
+    --transition-speed: 0.15s;
+}
+
+/* ... (Keep previous body, app-container, header, main-content styles) ... */
+
+/* Sidebars */
+.sidebar {
+    /* ... (Keep previous sidebar styles) ... */
+    background-color: #fdfefe; /* Slightly off-white */
+    border: 1px solid #e5e7eb;
+}
+.sidebar-section h2 { color: var(--header-bg); } /* Darker heading */
+.sidebar-section small { font-size: 0.8em; color: var(--text-light); display: block; margin-top: -0.8rem; margin-bottom: 0.8rem; }
+
+/* ... (Keep Control group, range group, button, select styles) ... */
+
+/* --- Specific Control Adjustments --- */
+.radio-group label { font-size: 0.9em;}
+.btn-warning { color: #fff;} /* White text on orange */
+.btn-outline { border-width: 1px; background-color: #fff;}
+.btn-outline:hover:not(:disabled) { background-color: var(--hover-bg); }
+
+/* Main Panel & Canvas */
+.main-panel { /* ... (Keep main-panel styles) ... */ }
+.canvas-container {
+    /* ... (Keep canvas-container styles) ... */
+    background-color: var(--grid-bg); /* Use map background color */
+    border: 1px solid #bdc3c7; /* Slightly darker border */
+    padding: 0.5rem; /* Less padding */
+}
+canvas#gridCanvas {
+    /* ... (Keep canvas styles) ... */
+    border: none; /* Remove inner border */
+    background-color: transparent; /* Canvas transparent over container bg */
+    cursor: default;
+}
+#cellInfoBox { display: none; } /* Hide cell info box */
+
+.main-controls { /* ... (Keep main-controls styles) ... */ }
+.main-controls .range-group { max-width: 250px; }
+
+/* Chart */
+.chart-container { /* ... (Keep chart styles) ... */ }
+
+/* Info Panel */
+.info-grid { /* ... (Keep info-grid styles) ... */ }
+/* ... (Keep statusDisplay styles) ... */
+
+
+/* --- Responsive Design --- */
+/* ... (Keep previous responsive styles, they should mostly work) ... */
+@media (max-width: 767px) {
+    /* ... (Keep previous mobile styles) ... */
+    .btn-icon span { display: none; } /* Hide button text */
+}
