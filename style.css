@@ -1,0 +1,96 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+h1 {
+    color: #2c3e50;
+}
+
+canvas {
+    border: 2px solid #34495e;
+    background-color: #fff;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    box-shadow: 3px 3px 8px rgba(0,0,0,0.1);
+}
+
+.controls {
+    margin-bottom: 15px;
+    background-color: #ecf0f1;
+    padding: 10px 15px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Adds space between control items */
+}
+
+.controls label {
+    font-weight: bold;
+}
+
+.controls button, .controls select, .controls input[type="range"] {
+    padding: 8px 12px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.controls button:hover:not(:disabled) {
+    background-color: #e0e0e0;
+}
+.controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+/* Style range inputs specifically */
+.controls input[type="range"] {
+    padding: 0; /* Remove default padding */
+    vertical-align: middle; /* Align with labels/buttons */
+}
+
+
+#info {
+    margin-top: 10px;
+    background-color: #e8f6fd;
+    border: 1px solid #aedff7;
+    padding: 10px 20px;
+    border-radius: 5px;
+    min-width: 300px;
+    text-align: left;
+}
+
+#info p {
+    margin: 5px 0;
+    line-height: 1.4;
+}
+
+#info span {
+    font-weight: bold;
+    color: #2980b9;
+}
+
+/* Specific styles for status */
+#statusDisplay.training { color: #f39c12; }
+#statusDisplay.greedy { color: #2ecc71; }
+#statusDisplay.stopped { color: #e74c3c; }
+#statusDisplay.finished { color: #16a085; }
+
+/* Cell type colors */
+:root {
+    --color-empty: #ffffff;
+    --color-obstacle: #34495e;
+    --color-start: #3498db;
+    --color-goal: #2ecc71;
+    --color-agent: #e74c3c;
+    --color-path: rgba(231, 76, 60, 0.3); /* Faint red for path */
+    --color-q-arrow: #f39c12; /* Orange for Q-value arrows */
+    --color-grid-line: #ecf0f1;
+}
