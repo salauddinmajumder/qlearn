@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (showCurrentPathCheckbox.checked && (simulationState === 'training' || simulationState === 'paused' || simulationState === 'greedy')) {
                  drawRoute(episodeRoute, getCssVar('--current-path-color'), 2);
             }
-            if (showFinalRouteCheckbox.checked && bestRoute.length > 1) {
+            if (showFinalRouteCheckbox.checked && bestRoute.length > 1) { // Check showFinalRoute toggle
                 drawRoute(bestRoute, getCssVar('--final-route-color'), 3.5, true);
             }
             drawLocations();     // Depot and delivery markers
@@ -392,33 +392,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const validActions = remaining.length === 0 ? [0] : [...remaining].sort((a,b)=>a-b);
             if (!qTable[stateString]) qTable[stateString] = new Array(validActions.length).fill(0);
             const qIndex = validActions.indexOf(action);
-            // Return 0 if action is not valid for this state (should ideally not happen if called correctly)
-            // or if the Q-value hasn't been set yet (defaults to 0).
             return qIndex === -1 ? 0 : (qTable[stateString][qIndex] || 0);
         } catch (e) {
              console.error("Error in getQValue:", e, "State:", stateString, "Action:", action);
-             return 0; // Default Q value on error
+             return 0;
         }
     }
     function chooseAction(locationIndex, remainingSet) {
-        const stateString = getStateString(locationIndex, remainingSet);
-        const validActions = getValidActions(locationIndex, remainingSet);
-        if (validActions.length === 0) return -1;
-        if (validActions.length === 1) return validActions[0];
-        let chosenAction;
-        const isExploring = (simulationState === 'training' || simulationState === 'stepping') && Math.random() < epsilon;
-        if (isExploring) {
-            chosenAction = validActions[Math.floor(Math.random() * validActions.length)];
-        } else {
+        const stateString = getStateString(locationIndex, remainingSet); const validActions = getValidActions(locationIndex, remainingSet);
+        if (validActions.length === 0) return -1; if (validActions.length === 1) return validActions[0];
+        let chosenAction; const isExploring = (simulationState === 'training' || simulationState === 'stepping') && Math.random() < epsilon;
+        if (isExploring) { chosenAction = validActions[Math.floor(Math.random() * validActions.length)]; }
+        else {
              const qValues = validActions.map(a => getQValue(stateString, a));
-             // Check if all Q-values are effectively the same (e.g., all zero)
-             const firstQ = qValues[0];
-             const allSame = qValues.every(q => Math.abs(q - firstQ) < 1e-6);
-             if(allSame) {
-                 // If all Q-values are the same, pick a random valid action
-                 chosenAction = validActions[Math.floor(Math.random() * validActions.length)];
+             const firstQ = qValues[0]; const allSame = qValues.every(q => Math.abs(q - firstQ) < 1e-6);
+             if(allSame && qValues.length > 1) {
+                 let possibleNext = validActions.filter(a => a !== locationIndex); // Prefer not staying put if possible
+                 if (possibleNext.length === 0) possibleNext = validActions;
+                 chosenAction = possibleNext[Math.floor(Math.random() * possibleNext.length)];
              } else {
-                  // Otherwise, find the max Q and choose among the best
                  const maxQ = Math.max(...qValues);
                  const bestActions = validActions.filter((a, i) => Math.abs(qValues[i] - maxQ) < 1e-6);
                  chosenAction = bestActions[Math.floor(Math.random() * bestActions.length)];
@@ -427,29 +419,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return chosenAction;
     }
     function updateQTable(stateString, action, reward, nextStateString, done) {
-        const validActionsCurrent = getValidActionsFromString(stateString);
-        const qIndex = validActionsCurrent.indexOf(action);
+        const validActionsCurrent = getValidActionsFromString(stateString); const qIndex = validActionsCurrent.indexOf(action);
         if (qIndex === -1) { console.warn(`Update skip: Action ${action} invalid for state ${stateString}`); return; }
         if (!qTable[stateString]) qTable[stateString] = new Array(validActionsCurrent.length).fill(0);
         const currentQ = qTable[stateString][qIndex]; let maxNextQ = 0;
         if (!done) {
             const validActionsNext = getValidActionsFromString(nextStateString);
             if (validActionsNext.length > 0) {
-                // Ensure next state is initialized in Q-table if needed before getting max Q
-                if (!qTable[nextStateString]) {
-                     qTable[nextStateString] = new Array(validActionsNext.length).fill(0);
-                }
-                 maxNextQ = Math.max(...validActionsNext.map(a => getQValue(nextStateString, a)));
+                if (!qTable[nextStateString]) qTable[nextStateString] = new Array(validActionsNext.length).fill(0);
+                maxNextQ = Math.max(...validActionsNext.map(a => getQValue(nextStateString, a)));
             }
         }
-        const targetQ = reward + DISCOUNT_FACTOR * maxNextQ;
-        const newQ = currentQ + LEARNING_RATE * (targetQ - currentQ);
+        const targetQ = reward + DISCOUNT_FACTOR * maxNextQ; const newQ = currentQ + LEARNING_RATE * (targetQ - currentQ);
         qTable[stateString][qIndex] = newQ;
     }
     function getValidActionsFromString(stateString) {
          try {
             const parts = stateString.split('-'); const remaining = JSON.parse(parts[1] || '[]');
-            return remaining.length === 0 ? [0] : [...remaining].sort((a,b)=>a-b);
+            // Ensure remaining items are numbers (indices)
+            const validIndices = remaining.filter(idx => typeof idx === 'number');
+            return validIndices.length === 0 ? [0] : [...validIndices].sort((a,b)=>a-b);
          } catch (e) { console.error("Error parsing state string:", stateString, e); return []; }
     }
 
@@ -459,17 +448,25 @@ document.addEventListener('DOMContentLoaded', () => {
          const stateString = getStateString(currentLocationIndex, remainingDeliveries); const action = chooseAction(currentLocationIndex, remainingDeliveries);
          if (action === -1) { setStatus("Error: Choose action failed", "error"); stopSimulationLoop(); return; }
          const currentLocation = allLocations[currentLocationIndex]; const nextLocation = allLocations[action];
-         const distance = manhattanDistance(currentLocation, nextLocation); const cost = distance * COST_PER_DISTANCE_UNIT; const reward = -cost;
+         const distance = manhattanDistance(currentLocation, nextLocation);
+         // Check for infinite distance (invalid location)
+         if (distance === Infinity) {
+              console.error(`Invalid move detected: ${currentLocationIndex} -> ${action}`);
+              setStatus("Error: Invalid Move", "error");
+              stopSimulationLoop();
+              return;
+         }
+         const cost = distance * COST_PER_DISTANCE_UNIT; const reward = -cost;
          const previousLocationIndex = currentLocationIndex; currentLocationIndex = action; episodeCost += cost;
          let nextRemainingDeliveries = new Set(remainingDeliveries); if (action !== 0) nextRemainingDeliveries.delete(action);
          const done = (currentLocationIndex === 0 && nextRemainingDeliveries.size === 0); let finalReward = reward; if (done) finalReward += REWARD_SUCCESSFUL_RETURN;
          const nextStateString = getStateString(currentLocationIndex, nextRemainingDeliveries);
          if (simulationState === 'training' || simulationState === 'stepping') updateQTable(stateString, action, finalReward, nextStateString, done);
-         remainingDeliveries = nextRemainingDeliveries; // Update main state *after* using old value for Q update
+         remainingDeliveries = nextRemainingDeliveries;
          episodeRoute.push(currentLocationIndex);
          // Agent trail removed
          if (done) handleEpisodeEnd(true);
-         currentStep++; // Increment step count
+         currentStep++;
     }
     function handleEpisodeEnd(succeeded) {
         const wasTraining = simulationState === 'training'; const wasStepping = simulationState === 'stepping'; const wasGreedy = simulationState === 'greedy';
@@ -479,12 +476,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (succeeded && episodeCost < bestRouteCost) { bestRouteCost = episodeCost; bestRoute = [...episodeRoute]; console.log(`New best: Cost ${bestRouteCost.toFixed(0)}`, bestRoute); }
         if (wasTraining) {
-            currentEpisode++; if (currentEpisode >= MAX_EPISODES) { setStatus(`Training Finished (Max Ep.).`, 'finished'); stopSimulationLoop(); bestRoute = findBestRouteFromQTable() || bestRoute; } else { resetAgent(); }
+            currentEpisode++;
+            if (currentEpisode >= MAX_EPISODES) {
+                setStatus(`Training Finished (Max Ep.). Calculating best route...`, 'finished');
+                const finalRoute = findBestRouteFromQTable();
+                if (finalRoute) { bestRoute = finalRoute; bestRouteCost = calculateRouteCost(finalRoute); setStatus(`Training Finished. Best Route Cost: ${bestRouteCost.toFixed(0)}.`, 'finished'); console.log("Final Best Route (Max Ep):", bestRoute, "Cost:", bestRouteCost); }
+                else { setStatus('Training Finished. Could not determine final route.', 'error'); console.error("Failed to calculate final route after max episodes."); }
+                stopSimulationLoop();
+            } else { resetAgent(); }
         } else if (wasStepping) { setStatus(`Episode End (${succeeded ? 'Success' : 'Stopped'}). Paused.`, 'paused'); simulationState = 'paused'; updateButtonStates(); resetAgent(); }
         else if (wasGreedy) { if (succeeded) { setStatus(`Route Found. Cost: ${episodeCost.toFixed(0)}.`, 'finished'); bestRoute = [...episodeRoute]; bestRouteCost = episodeCost; } else { setStatus(`Greedy Run Failed/Stopped.`, 'stopped'); } stopSimulationLoop(); }
-        else { resetAgent(); } // Reset if stopped manually
-        if (!wasGreedy) { episodeCost = 0; } // Reset cost for next run, unless greedy just finished
-        updateInfoDisplay();
+        else { resetAgent(); }
+        if (!wasGreedy) { episodeCost = 0; } updateInfoDisplay();
     }
     function simulationLoop(timestamp) {
          if (simulationState === 'stopped' || simulationState === 'error') { animationFrameId = null; updateButtonStates(); return; }
@@ -502,21 +505,41 @@ document.addEventListener('DOMContentLoaded', () => {
          updateButtonStates();
     }
     function stopSimulationLoop() {
-         if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
-         const wasRunning = simulationState !== 'idle' && simulationState !== 'stopped' && simulationState !== 'error';
-         simulationState = 'stopped'; updateButtonStates();
-         if (wasRunning) { setStatus('Simulation Stopped.', 'stopped'); requestAnimationFrame(draw); }
-         lastTimestamp = 0; timeAccumulator = 0;
+        if (animationFrameId) { cancelAnimationFrame(animationFrameId); animationFrameId = null; }
+        const wasTrainingBeforeStop = simulationState === 'training';
+        const wasRunning = simulationState !== 'idle' && simulationState !== 'stopped' && simulationState !== 'error';
+        simulationState = 'stopped';
+
+        if (wasTrainingBeforeStop) {
+            console.log("Training stopped manually. Calculating best route found so far...");
+            setStatus('Training Stopped. Calculating best route...', 'stopped');
+            const finalRoute = findBestRouteFromQTable();
+            if (finalRoute) {
+                const calculatedCost = calculateRouteCost(finalRoute);
+                if(calculatedCost < bestRouteCost) { bestRoute = finalRoute; bestRouteCost = calculatedCost; console.log("Best Route (Manual Stop):", bestRoute, "Cost:", bestRouteCost); setStatus(`Training Stopped. Best Route Cost: ${bestRouteCost.toFixed(0)}.`, 'stopped'); }
+                else { console.log("Route found on stop was not better than previous best."); setStatus(`Training Stopped. Best Route Cost: ${bestRouteCost.toFixed(0)}.`, 'stopped'); }
+            } else { setStatus('Training Stopped. Could not determine final route.', 'error'); console.error("Failed to calculate final route after manual stop."); }
+        } else if (wasRunning) {
+             setStatus('Simulation Stopped.', 'stopped');
+        }
+        updateButtonStates(); // Update buttons AFTER state change and potential calculation
+        if (wasRunning) { requestAnimationFrame(draw); } // Draw the final state/route
+        lastTimestamp = 0; timeAccumulator = 0;
     }
 
     // --- Simulation Control Actions ---
     function startTrainingAction() {
-         if (simulationState === 'training') return;
-         const resuming = simulationState === 'paused';
-         if (!resuming) { initQTable(); resetSimulationStats(); bestRouteCost = Infinity; bestRoute = []; epsilon = EPSILON_START; setStatus('Training Started...', 'training'); }
-         else { setStatus('Training Resumed...', 'training'); }
-         simulationState = 'training'; updateButtonStates();
-         if (!animationFrameId) { lastTimestamp = performance.now(); timeAccumulator = 0; animationFrameId = requestAnimationFrame(simulationLoop); }
+        if (simulationState === 'training') return;
+        const resuming = simulationState === 'paused';
+        if (!resuming) {
+            // Consider if resetting Q-table here is desired, or only via button
+            // initQTable(); // Optionally uncomment to always clear learning on fresh start
+            resetSimulationStats(); bestRouteCost = Infinity; bestRoute = [];
+            epsilon = EPSILON_START;
+            setStatus('Training Started...', 'training');
+        } else { setStatus('Training Resumed...', 'training'); }
+        simulationState = 'training'; updateButtonStates();
+        if (!animationFrameId) { lastTimestamp = performance.now(); timeAccumulator = 0; animationFrameId = requestAnimationFrame(simulationLoop); }
     }
     function pauseTrainingAction() {
          if (simulationState === 'training') { simulationState = 'paused'; setStatus('Training Paused.', 'paused'); updateButtonStates(); }
@@ -531,8 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  bestRoute = route; bestRouteCost = calculateRouteCost(route);
                  setStatus(`Optimal Route Found. Cost: ${bestRouteCost.toFixed(0)}.`, 'finished');
                  console.log("Best Route:", route, "Cost:", bestRouteCost);
-                 resetAgent(); // Reset agent state for visual clarity
-                 episodeRoute = [...bestRoute]; // Set current path to best path for drawing
+                 resetAgent(); episodeRoute = [...bestRoute]; // Set current path for drawing
              } else {
                  setStatus('Could not determine route (Train more?).', 'error'); bestRoute = []; bestRouteCost = Infinity;
                  resetAgent(); episodeRoute = [0]; // Reset to start if failed
@@ -542,43 +564,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 10);
     }
 
-
     // --- Find Best Route from Q-Table ---
     function findBestRouteFromQTable() {
          let currentLoc = 0; let remaining = new Set(Array.from({ length: NUM_DELIVERIES }, (_, i) => i + 1)); const route = [0];
-         let safetyBreak = 0; const maxSteps = NUM_DELIVERIES + 5; // Safety break slightly larger
+         let safetyBreak = 0; const maxSteps = NUM_DELIVERIES + 5;
          while (remaining.size > 0 && safetyBreak < maxSteps) {
              const stateStr = getStateString(currentLoc, remaining); const validActions = getValidActions(currentLoc, remaining);
              if (validActions.length === 0) { console.error("Route Error: No valid actions from", stateStr); return null; }
              const qValues = validActions.map(a => getQValue(stateStr, a));
-             // Check if Q-values are all effectively zero (or the same initial value)
              const firstQ = qValues[0]; const allSameOrZero = qValues.every(q => Math.abs(q - firstQ) < 1e-6);
              let nextLoc;
              if (allSameOrZero && qValues.length > 1) {
-                 // If all Q-values are the same (untrained state?), pick a random valid action *other than current* if possible
-                 let possibleNext = validActions.filter(a => a !== currentLoc);
-                 if (possibleNext.length === 0) possibleNext = validActions; // Fallback if only current is possible (shouldn't happen here)
+                 let possibleNext = validActions.filter(a => a !== currentLoc); if (possibleNext.length === 0) possibleNext = validActions;
                  nextLoc = possibleNext[Math.floor(Math.random() * possibleNext.length)];
-                 console.warn("Choosing random action in findBestRoute due to equal Q-values for state:", stateStr);
+                 // console.warn("Choosing random action in findBestRoute due to equal Q-values for state:", stateStr);
              } else {
-                  // Standard greedy choice
-                 const maxQ = Math.max(...qValues);
-                 const bestActions = validActions.filter((a, idx) => Math.abs(qValues[idx] - maxQ) < 1e-6);
-                 nextLoc = bestActions[Math.floor(Math.random() * bestActions.length)]; // Use random tie-breaking
+                 const maxQ = Math.max(...qValues); const bestActions = validActions.filter((a, idx) => Math.abs(qValues[idx] - maxQ) < 1e-6);
+                 nextLoc = bestActions[Math.floor(Math.random() * bestActions.length)];
              }
              if (nextLoc === undefined) { console.error("Route Error: Undefined nextLoc", stateStr, validActions, qValues); return null; }
              route.push(nextLoc); currentLoc = nextLoc; remaining.delete(nextLoc); safetyBreak++;
          }
-         if (remaining.size === 0) { route.push(0); } // Add return to depot
-         else { console.error("Route Error: Did not visit all locations.", route, remaining); return null; }
+         if (remaining.size === 0) { route.push(0); } else { console.error("Route Error: Did not visit all locations.", route, remaining); return null; }
          return route;
      }
       function calculateRouteCost(routeIndices) {
          let totalCost = 0; if (!routeIndices || routeIndices.length < 2) return 0;
          for (let i = 0; i < routeIndices.length - 1; i++) {
              const loc1 = allLocations[routeIndices[i]]; const loc2 = allLocations[routeIndices[i+1]];
-             const dist = manhattanDistance(loc1, loc2);
-             if (dist === Infinity) return Infinity; totalCost += dist * COST_PER_DISTANCE_UNIT;
+             const dist = manhattanDistance(loc1, loc2); if (dist === Infinity) return Infinity; totalCost += dist * COST_PER_DISTANCE_UNIT;
          }
          return totalCost;
       }
@@ -644,7 +658,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function updateUIParameterValues() {
          gridSizeSelect.value = GRID_SIZE; numDeliveriesSelect.value = NUM_DELIVERIES;
-         // obstacleProbValueSpan removed
          learningRateSlider.value = LEARNING_RATE; learningRateValueSpan.textContent = LEARNING_RATE.toFixed(2);
          discountFactorSlider.value = DISCOUNT_FACTOR; discountFactorValueSpan.textContent = DISCOUNT_FACTOR.toFixed(2);
          epsilonStartSlider.value = EPSILON_START; epsilonStartValueSpan.textContent = EPSILON_START.toFixed(2);
@@ -659,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
          else if (speedVal > 250) speedText = 'Medium'; else if (speedVal > 50) speedText = 'Slow'; else speedText = 'Very Slow';
          speedValueSpan.textContent = speedText; stepDelay = 1000 - speedVal;
      }
-    function updateAlgorithmParamsFromUI() { // Read params from UI into JS variables
+    function updateAlgorithmParamsFromUI() {
          LEARNING_RATE = parseFloat(learningRateSlider.value);
          DISCOUNT_FACTOR = parseFloat(discountFactorSlider.value);
          EPSILON_START = parseFloat(epsilonStartSlider.value);
@@ -673,14 +686,12 @@ document.addEventListener('DOMContentLoaded', () => {
     gridSizeSelect.addEventListener('change', (e) => { init(true); });
     numDeliveriesSelect.addEventListener('change', (e) => { init(true); });
     resetEnvBtn.addEventListener('click', () => init(true));
-    // Param slider listeners
     learningRateSlider.addEventListener('input', (e) => { LEARNING_RATE = parseFloat(e.target.value); learningRateValueSpan.textContent = LEARNING_RATE.toFixed(2); });
     discountFactorSlider.addEventListener('input', (e) => { DISCOUNT_FACTOR = parseFloat(e.target.value); discountFactorValueSpan.textContent = DISCOUNT_FACTOR.toFixed(2); });
     epsilonStartSlider.addEventListener('input', (e) => { EPSILON_START = parseFloat(e.target.value); epsilonStartValueSpan.textContent = EPSILON_START.toFixed(2); if (simulationState === 'idle' || simulationState === 'stopped' || simulationState === 'paused') { epsilon = EPSILON_START; updateInfoDisplay();} });
     epsilonDecaySlider.addEventListener('input', (e) => { EPSILON_DECAY = parseFloat(e.target.value); epsilonDecayValueSpan.textContent = EPSILON_DECAY.toFixed(4); });
     epsilonMinSlider.addEventListener('input', (e) => { EPSILON_MIN = parseFloat(e.target.value); epsilonMinValueSpan.textContent = EPSILON_MIN.toFixed(2); });
     maxEpisodesInput.addEventListener('change', (e) => { MAX_EPISODES = parseInt(e.target.value) || 10000; totalEpisodesDisplay.textContent = MAX_EPISODES; });
-    // Reset/Persistence/Controls listeners
     resetQTableBtn.addEventListener('click', () => { if (confirm("Reset all learning progress (Q-Table)?")) { initQTable(); resetSimulationStats(); setStatus("Learning Reset.", "idle"); requestAnimationFrame(draw); } });
     saveQTableBtn.addEventListener('click', saveQTable);
     loadQTableBtn.addEventListener('click', loadQTable);
@@ -689,7 +700,6 @@ document.addEventListener('DOMContentLoaded', () => {
     pauseTrainingBtn.addEventListener('click', pauseTrainingAction);
     stopTrainingBtn.addEventListener('click', stopAction);
     runGreedyBtn.addEventListener('click', greedyAction);
-    // Visualization toggles
     showCurrentPathCheckbox.addEventListener('change', () => requestAnimationFrame(draw));
     showTruckCheckbox.addEventListener('change', () => requestAnimationFrame(draw));
     showFinalRouteCheckbox.addEventListener('change', () => requestAnimationFrame(draw));
@@ -715,12 +725,10 @@ document.addEventListener('DOMContentLoaded', () => {
                   init(false); // Re-init map but keep loaded Q-table logic below
              }
              qTable = loadedData.qTable || {}; bestRoute = loadedData.bestRoute || []; bestRouteCost = loadedData.bestRouteCost === undefined ? Infinity : loadedData.bestRouteCost;
-             // recalculateGlobalMinMaxQ(); // Removed
              resetSimulationStats(); epsilon = EPSILON_MIN; // Assume loaded is trained
              setStatus("Policy Loaded. Epsilon low.", "idle"); updateInfoDisplay(); requestAnimationFrame(draw);
          } catch (e) { console.error("Load failed:", e); setStatus("Error loading.", "error"); alert("Could not load policy."); }
     }
-
 
     // --- Initial Setup & Resize Handling ---
     console.log("DOM Loaded. Starting initialization...");
