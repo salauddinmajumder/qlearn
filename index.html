@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q-Learning Grid World Visualization</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Q-Learning Agent Navigation</h1>
+
+    <div class="controls">
+        <label for="gridSize">Grid Size:</label>
+        <select id="gridSize">
+            <option value="5">5x5</option>
+            <option value="6" selected>6x6</option>
+            <option value="8">8x8</option>
+            <option value="10">10x10</option>
+        </select>
+
+        <label for="obstacleProb">Obstacle %:</label>
+        <input type="range" id="obstacleProb" min="0" max="50" value="15">
+        <span id="obstacleProbValue">15%</span>
+
+        <button id="resetEnvBtn">Reset Environment</button>
+    </div>
+
+    <canvas id="gridCanvas" width="480" height="480"></canvas>
+
+    <div class="controls">
+         <label for="speed">Speed:</label>
+         <input type="range" id="speed" min="10" max="1000" value="100" step="10">
+         <span id="speedValue">Fast</span>
+
+        <button id="startTrainingBtn">Start Training</button>
+        <button id="stopTrainingBtn" disabled>Stop Training</button>
+        <button id="runGreedyBtn">Run Greedy Policy</button>
+    </div>
+
+     <div id="info">
+        <p>Status: <span id="statusDisplay">Initialized. Ready to train.</span></p>
+        <p>Episode: <span id="episodeDisplay">0</span>/<span id="totalEpisodesDisplay">1000</span></p>
+        <p>Step: <span id="stepsDisplay">0</span></p>
+        <p>Total Reward (Episode): <span id="rewardDisplay">0</span></p>
+        <p>Epsilon (Explore %): <span id="epsilonDisplay">1.000</span></p>
+        <p>Avg Reward (Last 50): <span id="avgRewardDisplay">N/A</span></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
