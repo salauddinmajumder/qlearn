@@ -801,16 +801,21 @@ document.addEventListener('DOMContentLoaded', () => {
          maxEpisodesInput.value = MAX_EPISODES; totalEpisodesDisplay.textContent = MAX_EPISODES;
          updateSpeedDisplay(speedSlider.value); // Also update speed display text
     }
-     function updateSpeedDisplay(value) { /* ... (same as before) ... */
-         const speedVal = parseInt(value);
-         if (speedVal >= 990) speedValueSpan.textContent = 'Max';
-         else if (speedVal > 750) speedValueSpan.textContent = 'Very Fast';
-         else if (speedVal > 500) speedValueSpan.textContent = 'Fast';
-         else if (speedVal > 250) speedValueSpan.textContent = 'Medium';
-         else if (speedVal > 50) speedValueSpan.textContent = 'Slow';
-         else speedValueSpan.textContent = 'Very Slow';
-         stepDelay = 1000 - speedVal; // Update delay
-     }
+    function updateSpeedDisplay(value) {
+        const speedVal = parseInt(value);
+        let speedText = 'Medium'; // Default
+
+        // Corrected thresholds for 5 levels
+        if (speedVal >= 990) speedText = 'Max';        // 990-1000
+        else if (speedVal > 750) speedText = 'Very Fast'; // 751-989
+        else if (speedVal > 500) speedText = 'Fast';      // 501-750
+        else if (speedVal > 250) speedText = 'Medium';    // 251-500
+        else if (speedVal > 50) speedText = 'Slow';       // 51-250
+        else speedText = 'Very Slow';                     // 0-50
+
+        speedValueSpan.textContent = speedText;
+        stepDelay = 1000 - speedVal; // Update delay (inverse relationship)
+    }
 
     // --- Event Listeners ---
     gridSizeSelect.addEventListener('change', (e) => { GRID_SIZE = parseInt(e.target.value); init(true); resizeCanvas(); });
@@ -924,7 +929,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error("Load failed:", e); setStatus("Error loading policy.", "error"); alert("Could not load policy."); }
     }
 
-    // --- Initial Setup & Resize Handling ---
+    // --- Initial Setup ---
+    updateUIParameterValues(); // Existing line - this now calls the corrected speed display too
     init(true); // Initialize everything on load
     window.addEventListener('resize', resizeCanvas); // Add resize listener
     resizeCanvas(); // Initial resize check
