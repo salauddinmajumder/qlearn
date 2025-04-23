@@ -207,7 +207,7 @@ canvas#gridCanvas {
 /* Add cursor based on edit mode */
 canvas#gridCanvas.edit-mode-depot { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%236f42c1'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>") 12 24, crosshair; }
 canvas#gridCanvas.edit-mode-delivery { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23fd7e14'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>") 12 24, crosshair; }
-canvas#gridCanvas.edit-mode-none { cursor: default; }
+/* canvas#gridCanvas.edit-mode-none { cursor: default; } */ /* default is handled by removing classes */
 
 
 /* Cell Info Box removed */
@@ -236,9 +236,9 @@ canvas#gridCanvas.edit-mode-none { cursor: default; }
 .info-grid p:nth-child(even) span { font-weight: 700; color: var(--text-color); } /* Bold values */
 #statusDisplay { font-weight: 700 !important; }
 #statusDisplay.training { color: var(--warning-color) !important; }
-#statusDisplay.greedy { color: var(--success-color) !important; }
+#statusDisplay.greedy { color: var(--success-color) !important; } /* Used by Show Route now */
 #statusDisplay.paused { color: var(--primary-color) !important; }
-#statusDisplay.stepping { color: var(--secondary-color) !important; }
+#statusDisplay.stepping { color: var(--secondary-color) !important; } /* Used by calculate status */
 #statusDisplay.stopped { color: var(--danger-color) !important; }
 #statusDisplay.finished { color: var(--success-color) !important; }
 #statusDisplay.initializing { color: var(--secondary-color) !important; }
@@ -250,7 +250,7 @@ canvas#gridCanvas.edit-mode-none { cursor: default; }
     .sidebar { flex: 1 1 300px; max-height: none; }
     .main-panel { flex: 2 1 500px; order: -1; }
     .left-sidebar { order: 2;}
-    .right-sidebar { order: 3;} /* Adjusted order */
+    .right-sidebar { order: 3;}
 }
 
 @media (max-width: 767px) {
@@ -260,7 +260,7 @@ canvas#gridCanvas.edit-mode-none { cursor: default; }
     .app-header h1 { font-size: 1.25em; }
     .main-content { gap: 1rem; }
     .sidebar { padding: 1rem; flex-basis: 100%; order: 3; }
-    .main-panel { order: 1; }
+    .main-panel { order: 1; min-width: unset; }
     .main-controls { flex-direction: column; align-items: stretch; }
     .main-controls .range-group { max-width: none; }
     .main-controls .main-buttons { justify-content: center; }
