@@ -18,7 +18,6 @@
 
         <div class="main-content">
             <aside class="sidebar left-sidebar">
-                <!-- Environment Section (No Changes) -->
                 <div class="sidebar-section">
                     <h2>Environment</h2>
                     <div class="control-group">
@@ -45,10 +44,9 @@
                         </div>
                      </div>
                      <button id="resetEnvBtn" class="btn btn-secondary full-width">Generate New</button>
-                     <button id="clearObstaclesBtn" class="btn btn-outline full-width">Clear Walls</button>
+                     <button id="clearObstaclesBtn" class="btn btn-outline full-width">Clear Walls</button> <!-- Outline style -->
                 </div>
 
-                 <!-- Algorithm Section (No Changes) -->
                  <div class="sidebar-section">
                     <h2>Algorithm</h2>
                      <div class="control-group range-group">
@@ -82,12 +80,10 @@
                      </div>
                      <button id="resetQTableBtn" class="btn btn-warning full-width">Reset Learning</button>
                  </div>
-
-                 <!-- Persistence Section (No Changes) -->
                  <div class="sidebar-section">
                      <h2>Persistence</h2>
-                     <button id="saveQTableBtn" class="btn btn-outline full-width">Save Policy</button>
-                     <button id="loadQTableBtn" class="btn btn-outline full-width">Load Policy</button>
+                     <button id="saveQTableBtn" class="btn btn-outline full-width">Save Policy</button> <!-- Outline style -->
+                     <button id="loadQTableBtn" class="btn btn-outline full-width">Load Policy</button> <!-- Outline style -->
                  </div>
             </aside>
 
@@ -99,15 +95,15 @@
                 <div class="main-controls">
                     <div class="control-group range-group">
                          <label for="speed">Speed:</label>
-                         <input type="range" id="speed" min="0" max="1000" value="500" step="10">
+                         <input type="range" id="speed" min="0" max="1000" value="500" step="10"> <!-- Default to Medium-Fast -->
                          <span id="speedValue">Fast</span>
                     </div>
                     <div class="control-group main-buttons">
-                        <button id="startTrainingBtn" class="btn btn-primary btn-icon" title="Start/Resume Training">▶<span> Train</span></button>
-                        <button id="pauseTrainingBtn" class="btn btn-warning btn-icon" disabled title="Pause Training">❚❚<span> Pause</span></button>
-                        <button id="stopTrainingBtn" class="btn btn-danger btn-icon" disabled title="Stop Simulation">■<span> Stop</span></button>
-                        <button id="stepBtn" class="btn btn-secondary btn-icon" title="Run One Step">⇢<span> Step</span></button>
-                        <button id="runGreedyBtn" class="btn btn-success btn-icon" title="Run using learned policy">★<span> Greedy</span></button>
+                        <button id="startTrainingBtn" class="btn btn-primary btn-icon" title="Start/Resume Training">▶<span> Train</span></button> <!-- Icon added -->
+                        <button id="pauseTrainingBtn" class="btn btn-warning btn-icon" disabled title="Pause Training">❚❚<span> Pause</span></button> <!-- Icon added -->
+                        <button id="stopTrainingBtn" class="btn btn-danger btn-icon" disabled title="Stop Simulation">■<span> Stop</span></button> <!-- Icon added -->
+                        <button id="stepBtn" class="btn btn-secondary btn-icon" title="Run One Step">⇢<span> Step</span></button> <!-- Icon added -->
+                        <button id="runGreedyBtn" class="btn btn-success btn-icon" title="Run using learned policy">★<span> Greedy</span></button> <!-- Icon added -->
                     </div>
                 </div>
                 <div class="chart-container">
@@ -118,8 +114,8 @@
             <aside class="sidebar right-sidebar">
                 <div class="sidebar-section">
                     <h2>Visualization</h2>
-                    <div class="viz-toggles">
-                         <div class="control-group toggle-group">
+                    <div class="viz-toggles"> <!-- Group toggles -->
+                        <div class="control-group toggle-group">
                              <input type="checkbox" id="showHeatmap" checked><label for="showHeatmap">Value Heatmap</label>
                          </div>
                         <div class="control-group toggle-group">
@@ -129,17 +125,10 @@
                             <input type="checkbox" id="showPolicyArrows" checked><label for="showPolicyArrows">Policy Arrows</label>
                         </div>
                         <div class="control-group toggle-group">
-                            <input type="checkbox" id="showPath" checked><label for="showPath">Agent Path (Live)</label>
+                            <input type="checkbox" id="showPath" checked><label for="showPath">Agent Path</label>
                         </div>
                          <div class="control-group toggle-group">
                              <input type="checkbox" id="showAgentTrail" checked><label for="showAgentTrail">Agent Trail</label>
-                         </div>
-                         <hr class="viz-divider"> <!-- Divider -->
-                         <div class="control-group toggle-group">
-                             <input type="checkbox" id="showFinalPath" checked><label for="showFinalPath">Show Final Greedy Path</label>
-                         </div>
-                         <div class="control-group toggle-group">
-                             <input type="checkbox" id="show3DEffect"><label for="show3DEffect">Cell 3D Effect</label> <!-- Off by default -->
                          </div>
                      </div>
                  </div>
