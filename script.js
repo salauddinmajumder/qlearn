@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const editModeRadios = document.querySelectorAll('input[name="editMode"]');
     const generateMapBtn = document.getElementById('generateMapBtn'); // Renamed button
     const clearDeliveriesBtn = document.getElementById('clearDeliveriesBtn'); // New button
-    // Algorithm Params ... (keep references)
+    // Algorithm Params
     const learningRateSlider = document.getElementById('learningRate');
     const learningRateValueSpan = document.getElementById('learningRateValue');
     const discountFactorSlider = document.getElementById('discountFactor');
@@ -22,21 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const epsilonMinValueSpan = document.getElementById('epsilonMinValue');
     const maxEpisodesInput = document.getElementById('maxEpisodes');
     const resetQTableBtn = document.getElementById('resetQTableBtn');
-     // Persistence ... (keep references)
+     // Persistence
      const saveQTableBtn = document.getElementById('saveQTableBtn');
      const loadQTableBtn = document.getElementById('loadQTableBtn');
-    // Main Controls ... (keep references)
+    // Main Controls
     const speedSlider = document.getElementById('speed');
     const speedValueSpan = document.getElementById('speedValue');
     const startTrainingBtn = document.getElementById('startTrainingBtn');
     const pauseTrainingBtn = document.getElementById('pauseTrainingBtn');
     const stopTrainingBtn = document.getElementById('stopTrainingBtn');
     const showRouteBtn = document.getElementById('showRouteBtn'); // Renamed from runGreedyBtn
-    // Visualization ... (keep references)
+    // Visualization
     const showCurrentPathCheckbox = document.getElementById('showCurrentPath');
     const showTruckCheckbox = document.getElementById('showTruck');
     const showFinalRouteCheckbox = document.getElementById('showFinalRoute');
-    // Info Panel ... (keep references)
+    // Info Panel
     const statusDisplay = document.getElementById('statusDisplay');
     const episodeDisplay = document.getElementById('episodeDisplay');
     const totalEpisodesDisplay = document.getElementById('totalEpisodesDisplay');
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const avgRewardDisplay = document.getElementById('avgRewardDisplay');
     const bestRouteCostDisplay = document.getElementById('bestRouteCostDisplay');
     const qTableSizeDisplay = document.getElementById('qTableSizeDisplay');
-    // Chart ... (keep reference)
+    // Chart
     const rewardChartCanvas = document.getElementById('rewardChart');
 
     // --- Configuration & Constants ---
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let CELL_SIZE = 0;
     const REWARD_SUCCESSFUL_RETURN = 200;
     const COST_PER_DISTANCE_UNIT = 1;
-    const REWARD_WALL_HIT = -5; // Not used in this version but kept
+    // const REWARD_WALL_HIT = -5; // Not used
 
     // --- Q-Learning Parameters ---
     let LEARNING_RATE, DISCOUNT_FACTOR, EPSILON_START, EPSILON_DECAY, EPSILON_MIN, MAX_EPISODES;
@@ -86,24 +86,33 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentEditMode = 'none'; // 'none', 'depot', 'delivery'
     let nextDeliveryIndexToPlace = 1; // Track which delivery number to place next
 
+
     // --- Utility Functions ---
-    // ... (Keep getCssVar, isValid, manhattanDistance, resizeCanvas, getStateString) ...
-    function resizeCanvas() { /* ... (Keep previous robust resizeCanvas) ... */
-        const container = document.querySelector('.canvas-container');
-        if (!container) { console.error("Canvas container not found!"); return false; }
-        const containerStyle = getComputedStyle(container);
-        const containerPaddingX = parseFloat(containerStyle.paddingLeft) + parseFloat(containerStyle.paddingRight);
-        const availableWidth = container.clientWidth - containerPaddingX;
-        const headerHeight = document.querySelector('.app-header')?.offsetHeight || 60;
-        const controlsHeight = document.querySelector('.main-controls')?.offsetHeight || 60;
-        const chartHeight = document.querySelector('.chart-container')?.offsetHeight || 220;
-        const verticalPadding = 60;
-        let availableHeight = window.innerHeight - headerHeight - controlsHeight - chartHeight - verticalPadding;
-        if(availableHeight < 200) availableHeight = 200;
-        const canvasSize = Math.max(200, Math.min(availableWidth, availableHeight));
-        const maxSize = 600;
-        const finalSize = Math.min(canvasSize, maxSize);
-        if (Math.abs(canvas.width - finalSize) > 1 || CELL_SIZE <= 0 || canvas.width === 0) {
+    function getCssVar(varName) { return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+    function isValid(r, c) { return r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE; }
+    function manhattanDistance(loc1, loc2) {
+        if (!loc1 || !loc2 || typeof loc1.r !== 'number' || typeof loc1.c !== 'number' || typeof loc2.r !== 'number' || typeof loc2.c !== 'number' || !isValid(loc1.r, loc1.c) || !isValid(loc2.r, loc2.c)) {
+             return Infinity;
+        }
+        return Math.abs(loc1.r - loc2.r) + Math.abs(loc1.c - loc2.c);
+    }
+     function resizeCanvas() {
+         const container = document.querySelector('.canvas-container');
+         if (!container) { console.error("Canvas container not found!"); return false; }
+         const containerStyle = getComputedStyle(container);
+         const containerPaddingX = parseFloat(containerStyle.paddingLeft) + parseFloat(containerStyle.paddingRight);
+         const containerPaddingY = parseFloat(containerStyle.paddingTop) + parseFloat(containerStyle.paddingBottom);
+         const availableWidth = container.clientWidth - containerPaddingX;
+         const headerHeight = document.querySelector('.app-header')?.offsetHeight || 60;
+         const controlsHeight = document.querySelector('.main-controls')?.offsetHeight || 60;
+         const chartHeight = document.querySelector('.chart-container')?.offsetHeight || 220;
+         const verticalPadding = 60;
+         let availableHeight = window.innerHeight - headerHeight - controlsHeight - chartHeight - verticalPadding;
+         if(availableHeight < 200) availableHeight = 200;
+         const canvasSize = Math.max(200, Math.min(availableWidth, availableHeight));
+         const maxSize = 600;
+         const finalSize = Math.min(canvasSize, maxSize);
+         if (Math.abs(canvas.width - finalSize) > 1 || CELL_SIZE <= 0 || canvas.width === 0) {
              canvas.width = finalSize; canvas.height = finalSize;
              if (GRID_SIZE > 0) { CELL_SIZE = canvas.width / GRID_SIZE; }
              else { console.error("GRID_SIZE is invalid during resize!"); CELL_SIZE = 0; return false; }
@@ -115,17 +124,22 @@ document.addEventListener('DOMContentLoaded', () => {
          return false;
      }
 
+    // --- State Representation ---
+    function getStateString(locationIndex, remainingSet) {
+        if (!(remainingSet instanceof Set)) { console.error("Invalid remainingSet passed to getStateString:", remainingSet); return `${locationIndex}-error`; }
+        const sortedRemaining = Array.from(remainingSet).sort((a, b) => a - b);
+        return `${locationIndex}-${JSON.stringify(sortedRemaining)}`;
+    }
+
     // --- Initialization ---
     function init(generateNewMap = true, resetLearning = true) {
         console.log(`--- Init (Generate: ${generateNewMap}, ResetLearn: ${resetLearning}) ---`);
         setStatus('Initializing...', 'initializing');
         stopSimulationLoop();
 
-        // 1. Read Grid Size & Params
         GRID_SIZE = parseInt(gridSizeSelect.value);
-        updateAlgorithmParamsFromUI(); // Read learning params
+        updateAlgorithmParamsFromUI(); // Read learning params first
 
-        // 2. Resize Canvas & Calc CELL_SIZE
         if (!resizeCanvas() && (CELL_SIZE <= 0 || canvas.width === 0)) {
              console.warn("Forcing CELL_SIZE calculation in init.");
              if (canvas.width > 0 && GRID_SIZE > 0) { CELL_SIZE = canvas.width / GRID_SIZE; }
@@ -134,60 +148,52 @@ document.addEventListener('DOMContentLoaded', () => {
         }
          console.log(`Init: Grid=${GRID_SIZE}, Cell=${CELL_SIZE.toFixed(2)}`);
 
-        // 3. Setup Locations
         if (generateNewMap) {
-            placeLocationsRandomly(); // Place depot and deliveries randomly
+            if (!placeLocationsRandomly()) return; // Generate random map
         } else {
-             // Keep existing locations, just ensure validity and update allLocations
-             updateAllLocations();
+            updateAllLocations(); // Keep existing, just rebuild array
              if (!depotLocation || deliveryLocations.length === 0) {
                   console.warn("Kept locations, but depot or deliveries missing. Regenerating.");
-                  placeLocationsRandomly(); // Fallback to random if kept locations are invalid
+                  if (!placeLocationsRandomly()) return; // Fallback if kept locations invalid
              }
         }
-         if (!depotLocation || deliveryLocations.length === 0) {
-              setStatus("Error: Location setup failed", "error"); simulationState = 'error'; updateButtonStates(); return;
-         }
-         NUM_DELIVERIES = deliveryLocations.length; // Update based on actual placements
+         // Update NUM_DELIVERIES based on actual count after placement/keep
+         NUM_DELIVERIES = deliveryLocations.length;
          numDeliveriesDisplay.value = NUM_DELIVERIES;
-         nextDeliveryIndexToPlace = NUM_DELIVERIES + 1; // Next index if user adds more
+         nextDeliveryIndexToPlace = NUM_DELIVERIES + 1;
 
 
-        // 4. Initialize Learning State
         if (resetLearning) { initQTable(); resetSimulationStats(); bestRouteCost = Infinity; bestRoute = []; }
-        else { resetSimulationStats(); } // Keep Q-table
+        else { resetSimulationStats(); }
 
-        // 5. Final UI Updates & Draw
         updateButtonStates();
         setStatus('Ready.', 'idle');
-        requestAnimationFrame(draw); // Draw initial state
+        requestAnimationFrame(draw);
         console.log("--- Initialization Complete ---");
     }
 
     function placeLocationsRandomly() {
-        console.log(`Placing ${MAX_ALLOWED_DELIVERIES} max random locations...`); // Aim for max, then adjust NUM_DELIVERIES
+        console.log(`Placing random locations...`);
         deliveryLocations = []; allLocations = []; const placedCoords = new Set(); depotLocation = null;
+        const initialNumDeliveries = parseInt(numDeliveriesDisplay.value) || 5; // Use displayed value as target
 
-        // Place Depot
-        depotLocation = findRandomClearCell(null, placedCoords) || {r:0, c:0}; // Find any or default
+        depotLocation = findRandomClearCell(null, placedCoords) || {r:0, c:0};
         if(depotLocation) { placedCoords.add(`${depotLocation.r},${depotLocation.c}`); allLocations.push(depotLocation); }
-        else { console.error("Failed to place Depot!"); return false; }
+        else { console.error("Failed to place Depot!"); return false;}
         console.log("Depot placed at:", depotLocation);
 
-        // Place Deliveries (up to max allowed initially)
         let attempts = 0; const maxAttempts = GRID_SIZE * GRID_SIZE * 3;
-        while (deliveryLocations.length < MAX_ALLOWED_DELIVERIES && attempts < maxAttempts) {
+        while (deliveryLocations.length < initialNumDeliveries && attempts < maxAttempts) { // Use target number
             const loc = findRandomClearCell(null, placedCoords);
-            if (loc) {
-                 deliveryLocations.push(loc); allLocations.push(loc); placedCoords.add(`${loc.r},${loc.c}`);
-            } else { break; } // No more clear cells
+            if (loc) { deliveryLocations.push(loc); allLocations.push(loc); placedCoords.add(`${loc.r},${loc.c}`); }
+            else { break; }
             attempts++;
         }
         console.log(`Placed ${deliveryLocations.length} random deliveries.`);
         resetAgent(); return true;
     }
 
-     function findRandomClearCell(excludePos = null, placedCoordsSet) { /* ... (same as before) ... */
+     function findRandomClearCell(excludePos = null, placedCoordsSet) {
          const clearCells = [];
          for (let r = 0; r < GRID_SIZE; r++) {
              for (let c = 0; c < GRID_SIZE; c++) {
@@ -198,38 +204,31 @@ document.addEventListener('DOMContentLoaded', () => {
          return clearCells.length > 0 ? clearCells[Math.floor(Math.random() * clearCells.length)] : null;
      }
 
-     // Update allLocations based on depot and deliveryLocations
      function updateAllLocations() {
          allLocations = [];
-         if (depotLocation) allLocations.push(depotLocation);
+         if (depotLocation && isValid(depotLocation.r, depotLocation.c)) allLocations.push(depotLocation);
+         // Ensure delivery locations are valid before adding
+         deliveryLocations = deliveryLocations.filter(loc => loc && isValid(loc.r, loc.c));
          allLocations = allLocations.concat(deliveryLocations);
      }
 
-     // Clear placed deliveries for manual placement
      function clearDeliveriesAction() {
          if (simulationState !== 'idle' && simulationState !== 'stopped' && simulationState !== 'error') return;
-         depotLocation = null;
-         deliveryLocations = [];
-         allLocations = [];
-         NUM_DELIVERIES = 0;
-         numDeliveriesDisplay.value = NUM_DELIVERIES;
-         nextDeliveryIndexToPlace = 1;
-         initQTable();
-         resetSimulationStats();
-         bestRoute = []; bestRouteCost = Infinity; // Clear best route too
-         setStatus("Cleared locations. Place Depot (D) and Deliveries (1, 2...).", "idle");
+         depotLocation = null; deliveryLocations = []; allLocations = []; NUM_DELIVERIES = 0;
+         numDeliveriesDisplay.value = NUM_DELIVERIES; nextDeliveryIndexToPlace = 1;
+         initQTable(); resetSimulationStats(); bestRoute = []; bestRouteCost = Infinity;
+         setStatus("Cleared. Place Depot (D) & Deliveries (1...).", "idle");
          requestAnimationFrame(draw);
      }
 
     function initQTable() { qTable = {}; globalMinQ = 0; globalMaxQ = 0; }
-    function resetSimulationStats() { /* ... (same as before) ... */
+    function resetSimulationStats() {
         currentEpisode = 0; episodeCost = 0; epsilon = EPSILON_START; recentCosts = [];
         initChart(); resetAgent(); updateInfoDisplay();
     }
-    function resetAgent() { /* ... (same as before, handles potentially null depot) ... */
-        currentLocationIndex = 0; // Start at depot index
-        // Recreate the set based on the *current* number of deliveries
-        NUM_DELIVERIES = deliveryLocations.length;
+    function resetAgent() {
+        currentLocationIndex = 0;
+        NUM_DELIVERIES = deliveryLocations.length; // Update based on actual deliveries
         remainingDeliveries = new Set(Array.from({ length: NUM_DELIVERIES }, (_, i) => i + 1));
         episodeCost = 0;
         episodeRoute = depotLocation ? [0] : [];
@@ -238,24 +237,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Drawing Functions ---
-    // ... (Keep draw, drawMapBackground, drawLocations, drawMarker, drawTruck, drawRoute - ensure they check validity) ...
-     function draw() {
+    function draw() {
         if (!ctx || CELL_SIZE <= 0 || canvas.width <= 0 || canvas.height <= 0) { return; }
         try {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawMapBackground(); // Base layer (grid lines)
-            // Draw paths before locations so markers are on top
+            drawMapBackground();
             if (showCurrentPathCheckbox.checked && (simulationState === 'training' || simulationState === 'paused' || simulationState === 'greedy')) {
                  drawRoute(episodeRoute, getCssVar('--current-path-color'), 2);
             }
             if (showFinalRouteCheckbox.checked && bestRoute.length > 1) {
                 drawRoute(bestRoute, getCssVar('--final-route-color'), 3.5, true);
             }
-            drawLocations();     // Depot and delivery markers
-            if (showTruckCheckbox.checked) {
-                drawTruck();
-            }
+            drawLocations();
+            if (showTruckCheckbox.checked) { drawTruck(); }
         } catch (e) { console.error("Error during drawing:", e); setStatus("Error: Drawing Failed", "error"); stopSimulationLoop(); }
+    }
+    // ... (Keep drawMapBackground, drawLocations, drawMarker, drawTruck, drawRoute) ...
+     function drawMapBackground() {
+        ctx.fillStyle = getCssVar('--grid-bg'); ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = getCssVar('--grid-line'); ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i <= GRID_SIZE; i++) {
+            const pos = Math.round(i * CELL_SIZE);
+            if (pos > canvas.width + 1 || pos > canvas.height + 1) continue;
+            ctx.moveTo(pos, 0); ctx.lineTo(pos, canvas.height);
+            ctx.moveTo(0, pos); ctx.lineTo(canvas.width, pos);
+        }
+        ctx.stroke();
+    }
+     function drawLocations() {
+         if (depotLocation && isValid(depotLocation.r, depotLocation.c)) { drawMarker(depotLocation, getCssVar('--cell-depot'), 'D'); }
+         deliveryLocations.forEach((loc, index) => {
+             if (loc && isValid(loc.r, loc.c)) {
+                  const deliveryIndex = index + 1; const isRemaining = remainingDeliveries.has(deliveryIndex);
+                  const color = getCssVar('--cell-delivery'); ctx.globalAlpha = isRemaining ? 1.0 : 0.3;
+                  drawMarker(loc, color, deliveryIndex.toString()); ctx.globalAlpha = 1.0;
+             }
+         });
+    }
+     function drawMarker(loc, color, text = '') {
+        const centerX = loc.c * CELL_SIZE + CELL_SIZE / 2; const centerY = loc.r * CELL_SIZE + CELL_SIZE / 2;
+        const radius = Math.max(5, CELL_SIZE * 0.38);
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(centerX, centerY, radius, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+        if (text) {
+            ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(9, radius)}px ${getCssVar('--font-family')}`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, centerX, centerY + 1);
+        }
+    }
+     function drawTruck() {
+         if (currentLocationIndex < 0 || currentLocationIndex >= allLocations.length) return;
+         const truckLoc = allLocations[currentLocationIndex]; if (!truckLoc || !isValid(truckLoc.r, truckLoc.c)) return;
+         const centerX = truckLoc.c * CELL_SIZE + CELL_SIZE / 2; const centerY = truckLoc.r * CELL_SIZE + CELL_SIZE / 2;
+         const truckSize = Math.max(7, CELL_SIZE * 0.60);
+         ctx.fillStyle = getCssVar('--truck-color'); ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 1.5;
+         ctx.fillRect(centerX - truckSize / 2, centerY - truckSize / 2, truckSize, truckSize);
+         ctx.strokeRect(centerX - truckSize / 2, centerY - truckSize / 2, truckSize, truckSize);
+         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+         ctx.fillRect(centerX - truckSize * 0.3, centerY - truckSize * 0.3, truckSize * 0.6, truckSize * 0.2);
+    }
+     function drawRoute(routeIndices, color, lineWidth, dashed = false) {
+        if (!routeIndices || routeIndices.length < 2 || !allLocations || allLocations.length === 0) return;
+        ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, lineWidth); ctx.lineCap = "round"; ctx.lineJoin = "round";
+        if (dashed) ctx.setLineDash([Math.max(2, CELL_SIZE * 0.1), Math.max(2, CELL_SIZE * 0.1)]);
+        else ctx.setLineDash([]);
+        ctx.beginPath();
+        let firstLoc = allLocations[routeIndices[0]]; if (!firstLoc || !isValid(firstLoc.r, firstLoc.c)) { ctx.setLineDash([]); console.warn("Invalid start loc in route"); return; }
+        ctx.moveTo(firstLoc.c * CELL_SIZE + CELL_SIZE / 2, firstLoc.r * CELL_SIZE + CELL_SIZE / 2);
+        for (let i = 1; i < routeIndices.length; i++) {
+            let nextLocIndex = routeIndices[i]; if(nextLocIndex === undefined || nextLocIndex === null || nextLocIndex < 0 || nextLocIndex >= allLocations.length) { console.warn(`Invalid index ${nextLocIndex} in route`); continue; }
+            let nextLoc = allLocations[nextLocIndex]; if (!nextLoc || !isValid(nextLoc.r, nextLoc.c)) { console.warn(`Invalid location data ${nextLocIndex}`); continue; }
+            ctx.lineTo(nextLoc.c * CELL_SIZE + CELL_SIZE / 2, nextLoc.r * CELL_SIZE + CELL_SIZE / 2);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
     }
 
     // --- Q-Learning Logic ---
@@ -263,50 +317,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Simulation Step & Loop ---
     // ... (Keep runSingleStep, handleEpisodeEnd, simulationLoop, stopSimulationLoop) ...
-    function handleEpisodeEnd(succeeded) {
+     function handleEpisodeEnd(succeeded) {
         const wasTraining = simulationState === 'training'; const wasStepping = simulationState === 'stepping'; const wasGreedy = simulationState === 'greedy';
-        if (succeeded && (wasTraining || wasStepping)) {
-             recentCosts.push(episodeCost); if (recentCosts.length > COST_AVERAGE_WINDOW) recentCosts.shift();
-             updateChart(); if (epsilon > EPSILON_MIN) epsilon *= EPSILON_DECAY;
-        }
+        // --- Update best route logic ---
         if (succeeded && episodeCost < bestRouteCost) { bestRouteCost = episodeCost; bestRoute = [...episodeRoute]; console.log(`New best: Cost ${bestRouteCost.toFixed(0)}`, bestRoute); }
+        // --- Update stats logic ---
+        if (succeeded && (wasTraining || wasStepping)) { recentCosts.push(episodeCost); if (recentCosts.length > COST_AVERAGE_WINDOW) recentCosts.shift(); updateChart(); if (epsilon > EPSILON_MIN) epsilon *= EPSILON_DECAY; }
+        // --- State transition logic ---
         if (wasTraining) {
             currentEpisode++; if (currentEpisode >= MAX_EPISODES) {
-                setStatus(`Training Finished (Max Ep.). Calculating Best Route...`, 'finished'); // Indicate calculation
-                stopSimulationLoop(); // Stop the training loop
-                setTimeout(() => { // Calculate after state update
-                    bestRoute = findBestRouteFromQTable() || bestRoute; // Calculate and potentially update
-                    if(bestRoute?.length > 1) bestRouteCost = calculateRouteCost(bestRoute);
+                setStatus(`Training Finished (Max Ep.). Calculating Best Route...`, 'finished'); stopSimulationLoop();
+                setTimeout(() => {
+                    const finalRoute = findBestRouteFromQTable(); // Recalculate final best
+                    if (finalRoute) { bestRoute = finalRoute; bestRouteCost = calculateRouteCost(bestRoute); }
                     setStatus(`Training Finished. Best Cost: ${bestRouteCost === Infinity ? 'N/A' : bestRouteCost.toFixed(0)}`, 'finished');
-                    updateInfoDisplay();
-                    requestAnimationFrame(draw); // Draw the final route
+                    updateInfoDisplay(); requestAnimationFrame(draw); // Show final route
                 }, 10);
-            } else { resetAgent(); }
-        } else if (wasStepping) { setStatus(`Episode End (${succeeded ? 'Success' : 'Stopped'}). Paused.`, 'paused'); simulationState = 'paused'; updateButtonStates(); resetAgent(); }
-        else if (wasGreedy) { if (succeeded) { setStatus(`Route Found. Cost: ${episodeCost.toFixed(0)}.`, 'finished'); bestRoute = [...episodeRoute]; bestRouteCost = episodeCost; } else { setStatus(`Greedy Run Failed/Stopped.`, 'stopped'); } stopSimulationLoop(); }
-        else { resetAgent(); }
+            } else { resetAgent(); } // Prepare for next episode
+        } else if (wasStepping) { /* Not used */ }
+        else if (wasGreedy) { /* Greedy now runs instantly via showRouteAction */ }
+        else { resetAgent(); } // Reset if stopped manually
         if (!wasGreedy) { episodeCost = 0; } updateInfoDisplay();
     }
 
-
     // --- Simulation Control Actions ---
+    // ... (Keep startTrainingAction, pauseTrainingAction, stopAction, showRouteAction) ...
     function startTrainingAction() {
          if (simulationState === 'training') return;
-         // Ensure depot and at least one delivery exist
-         if (!depotLocation || deliveryLocations.length === 0) {
-              alert("Please place a Depot (D) and at least one Delivery (1) location on the map first.");
-              return;
-         }
+         if (!depotLocation || deliveryLocations.length === 0) { alert("Please place a Depot (D) and at least one Delivery (1) location."); return; }
          const resuming = simulationState === 'paused';
          if (!resuming) { initQTable(); resetSimulationStats(); bestRouteCost = Infinity; bestRoute = []; epsilon = EPSILON_START; setStatus('Training Started...', 'training'); }
          else { setStatus('Training Resumed...', 'training'); }
          simulationState = 'training'; updateButtonStates();
          if (!animationFrameId) { lastTimestamp = performance.now(); timeAccumulator = 0; animationFrameId = requestAnimationFrame(simulationLoop); }
     }
-    function pauseTrainingAction() { /* ... (same) ... */ }
-    function stopAction() { stopSimulationLoop(); }
     function showRouteAction() { // Renamed from greedyAction
-        if (simulationState === 'training' || simulationState === 'greedy') return; // Don't interrupt
+        if (simulationState === 'training' || simulationState === 'greedy') return;
         console.log("Calculating best route from Q-Table..."); setStatus('Calculating Route...', 'stepping'); updateButtonStates();
         setTimeout(() => {
              const route = findBestRouteFromQTable();
@@ -332,66 +378,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // ... (Keep initChart, updateChart) ...
 
     // --- UI Updates & Event Handlers ---
-    function updateButtonStates() { /* ... (same logic, ensure runGreedyBtn renamed to showRouteBtn is handled) ... */
-        const isIdle = simulationState === 'idle' || simulationState === 'stopped' || simulationState === 'error';
-        const isPaused = simulationState === 'paused';
-        const isTrainingActive = simulationState === 'training';
-        const isRunning = !isIdle && !isPaused;
-
-        startTrainingBtn.disabled = isTrainingActive || simulationState === 'error';
-        startTrainingBtn.innerHTML = (isPaused) ? '▶<span> Resume</span>' : '▶<span> Train</span>';
-        pauseTrainingBtn.disabled = !isTrainingActive;
-        stopTrainingBtn.disabled = isIdle || simulationState === 'error';
-        showRouteBtn.disabled = isRunning || simulationState === 'error';
-
-        const settingsDisabled = !isIdle; // Disable settings unless fully idle/stopped/error
-        gridSizeSelect.disabled = settingsDisabled;
-        // numDeliveriesDisplay is readonly, no need to disable
-        resetEnvBtn.disabled = settingsDisabled; // Generate Button
-        clearDeliveriesBtn.disabled = settingsDisabled; // Clear Button
-        learningRateSlider.disabled = settingsDisabled; discountFactorSlider.disabled = settingsDisabled;
-        epsilonStartSlider.disabled = settingsDisabled; epsilonDecaySlider.disabled = settingsDisabled;
-        epsilonMinSlider.disabled = settingsDisabled; maxEpisodesInput.disabled = settingsDisabled;
-        resetQTableBtn.disabled = settingsDisabled;
-        saveQTableBtn.disabled = isRunning; loadQTableBtn.disabled = isRunning;
-        editModeRadios.forEach(radio => radio.disabled = settingsDisabled);
-        canvas.classList.toggle('edit-mode-depot', !settingsDisabled && currentEditMode === 'depot');
-        canvas.classList.toggle('edit-mode-delivery', !settingsDisabled && currentEditMode === 'delivery');
-    }
-    function updateInfoDisplay() { /* ... (same logic) ... */
-        episodeDisplay.textContent = currentEpisode;
-        totalEpisodesDisplay.textContent = MAX_EPISODES;
-        destLeftDisplay.textContent = remainingDeliveries?.size ?? 'N/A';
-        epsilonDisplay.textContent = (simulationState === 'training' || simulationState === 'paused') ? epsilon.toFixed(4) : 'N/A';
-        rewardDisplay.textContent = episodeCost?.toFixed(0) ?? '0';
-        if (recentCosts.length > 0) { const avg = recentCosts.reduce((a, b) => a + b, 0) / recentCosts.length; avgRewardDisplay.textContent = avg.toFixed(2); }
-        else { avgRewardDisplay.textContent = "N/A"; }
-        bestRouteCostDisplay.textContent = bestRouteCost === Infinity ? "N/A" : bestRouteCost.toFixed(0);
-        qTableSizeDisplay.textContent = `${Object.keys(qTable).length}`;
-    }
-    function setStatus(message, className = '') { /* ... (same logic) ... */
-        statusDisplay.textContent = message; statusDisplay.className = className;
-    }
-    function updateUIParameterValues() { /* ... (Read only algorithm params from UI) ... */
-         LEARNING_RATE = parseFloat(learningRateSlider.value); learningRateValueSpan.textContent = LEARNING_RATE.toFixed(2);
-         DISCOUNT_FACTOR = parseFloat(discountFactorSlider.value); discountFactorValueSpan.textContent = DISCOUNT_FACTOR.toFixed(2);
-         EPSILON_START = parseFloat(epsilonStartSlider.value); epsilonStartValueSpan.textContent = EPSILON_START.toFixed(2);
-         EPSILON_DECAY = parseFloat(epsilonDecaySlider.value); epsilonDecayValueSpan.textContent = EPSILON_DECAY.toFixed(4);
-         EPSILON_MIN = parseFloat(epsilonMinSlider.value); epsilonMinValueSpan.textContent = EPSILON_MIN.toFixed(2);
-         MAX_EPISODES = parseInt(maxEpisodesInput.value); totalEpisodesDisplay.textContent = MAX_EPISODES;
-         updateSpeedDisplay(speedSlider.value);
-    }
-     function updateSpeedDisplay(value) { /* ... (same logic) ... */
-         const speedVal = parseInt(value); let speedText = 'Medium';
-         if (speedVal >= 990) speedText = 'Max'; else if (speedVal > 750) speedText = 'Very Fast'; else if (speedVal > 500) speedText = 'Fast';
-         else if (speedVal > 250) speedText = 'Medium'; else if (speedVal > 50) speedText = 'Slow'; else speedText = 'Very Slow';
-         speedValueSpan.textContent = speedText; stepDelay = 1000 - speedVal;
+    function updateButtonStates() { /* ... (same logic, handle showRouteBtn) ... */
+         const isIdle = simulationState === 'idle' || simulationState === 'stopped' || simulationState === 'error'; const isPaused = simulationState === 'paused'; const isTrainingActive = simulationState === 'training'; const isRunning = !isIdle && !isPaused;
+         startTrainingBtn.disabled = isTrainingActive || simulationState === 'error'; startTrainingBtn.innerHTML = (isPaused) ? '▶<span> Resume</span>' : '▶<span> Train</span>';
+         pauseTrainingBtn.disabled = !isTrainingActive; stopTrainingBtn.disabled = isIdle || simulationState === 'error'; showRouteBtn.disabled = isRunning || simulationState === 'error';
+         const settingsDisabled = !isIdle;
+         gridSizeSelect.disabled = settingsDisabled; generateMapBtn.disabled = settingsDisabled; clearDeliveriesBtn.disabled = settingsDisabled;
+         learningRateSlider.disabled = settingsDisabled; discountFactorSlider.disabled = settingsDisabled; epsilonStartSlider.disabled = settingsDisabled; epsilonDecaySlider.disabled = settingsDisabled; epsilonMinSlider.disabled = settingsDisabled; maxEpisodesInput.disabled = settingsDisabled; resetQTableBtn.disabled = settingsDisabled;
+         saveQTableBtn.disabled = isRunning; loadQTableBtn.disabled = isRunning;
+         editModeRadios.forEach(radio => radio.disabled = settingsDisabled);
+         canvas.classList.toggle('edit-mode-depot', !settingsDisabled && currentEditMode === 'depot'); canvas.classList.toggle('edit-mode-delivery', !settingsDisabled && currentEditMode === 'delivery'); canvas.classList.toggle('edit-mode-none', currentEditMode === 'none');
      }
-     function updateAlgorithmParamsFromUI() { /* ... (same) ... */
-          LEARNING_RATE = parseFloat(learningRateSlider.value); DISCOUNT_FACTOR = parseFloat(discountFactorSlider.value);
-          EPSILON_START = parseFloat(epsilonStartSlider.value); EPSILON_DECAY = parseFloat(epsilonDecaySlider.value);
-          EPSILON_MIN = parseFloat(epsilonMinSlider.value); MAX_EPISODES = parseInt(maxEpisodesInput.value);
+    function updateInfoDisplay() { /* ... (same logic, ensure NUM_DELIVERIES is updated) ... */
+         episodeDisplay.textContent = currentEpisode; totalEpisodesDisplay.textContent = MAX_EPISODES;
+         destLeftDisplay.textContent = remainingDeliveries?.size ?? 'N/A';
+         epsilonDisplay.textContent = (simulationState === 'training' || simulationState === 'paused') ? epsilon.toFixed(4) : 'N/A';
+         rewardDisplay.textContent = episodeCost?.toFixed(0) ?? '0';
+         if (recentCosts.length > 0) { const avg = recentCosts.reduce((a, b) => a + b, 0) / recentCosts.length; avgRewardDisplay.textContent = avg.toFixed(2); } else { avgRewardDisplay.textContent = "N/A"; }
+         bestRouteCostDisplay.textContent = bestRouteCost === Infinity ? "N/A" : bestRouteCost.toFixed(0);
+         qTableSizeDisplay.textContent = `${Object.keys(qTable).length}`;
+         numDeliveriesDisplay.value = deliveryLocations.length; // Update display based on actual deliveries
      }
+    // ... (Keep setStatus, updateUIParameterValues, updateSpeedDisplay, updateAlgorithmParamsFromUI) ...
 
     // --- Event Listeners ---
     gridSizeSelect.addEventListener('change', (e) => { init(true); });
@@ -403,9 +411,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update canvas cursor class based on mode
         canvas.classList.toggle('edit-mode-depot', currentEditMode === 'depot');
         canvas.classList.toggle('edit-mode-delivery', currentEditMode === 'delivery');
+        canvas.classList.toggle('edit-mode-none', currentEditMode === 'none');
         });
     });
-
     // ... (Keep listeners for Algorithm Params, Persistence, Main Controls, Visualization Toggles) ...
     resetQTableBtn.addEventListener('click', () => { if (confirm("Reset all learning progress (Q-Table)?")) { initQTable(); resetSimulationStats(); setStatus("Learning Reset.", "idle"); requestAnimationFrame(draw); } });
     saveQTableBtn.addEventListener('click', saveQTable); loadQTableBtn.addEventListener('click', loadQTable);
@@ -419,75 +427,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Canvas Interaction Logic ---
     function handleCanvasClick(e) {
-         if (simulationState !== 'idle' && simulationState !== 'stopped' && simulationState !== 'error') {
-              console.log("Map editing disabled while simulation is active."); return;
-         }
-         if (currentEditMode === 'none') return; // Exit if not in edit mode
+         if (simulationState !== 'idle' && simulationState !== 'stopped' && simulationState !== 'error') { console.log("Map editing disabled while simulation is active."); return; }
+         if (currentEditMode === 'none') return;
 
          const rect = canvas.getBoundingClientRect();
          const x = e.clientX - rect.left; const y = e.clientY - rect.top;
          const c = Math.floor(x / CELL_SIZE); const r = Math.floor(y / CELL_SIZE);
-
-         if (!isValid(r, c)) return; // Click outside grid
+         if (!isValid(r, c)) return;
 
          let locationsChanged = false;
          const clickedCoordString = `${r},${c}`;
-
-         // Check if clicking on an existing location
-         let existingIndex = -1;
-         if (depotLocation && depotLocation.r === r && depotLocation.c === c) existingIndex = 0;
-         else existingIndex = deliveryLocations.findIndex(loc => loc.r === r && loc.c === c) + 1; // +1 to match delivery index
+         const isExistingDepot = depotLocation && depotLocation.r === r && depotLocation.c === c;
+         const existingDeliveryIndex = deliveryLocations.findIndex(loc => loc.r === r && loc.c === c); // 0-based index in deliveryLocations
 
          switch (currentEditMode) {
              case 'depot':
-                 if (existingIndex !== -1 && existingIndex !== 0) { // Clicked on a delivery location
-                      alert("Cannot place Depot on an existing Delivery location."); return;
-                 }
-                 depotLocation = { r, c };
+                 if (existingDeliveryIndex !== -1) { alert("Cannot place Depot on an existing Delivery location."); return; }
+                 depotLocation = { r, c }; locationsChanged = true;
                  console.log("Depot manually set to:", depotLocation);
-                 locationsChanged = true;
                  break;
-
              case 'delivery':
-                 if (existingIndex === 0) { // Clicked on Depot
-                      alert("Cannot place Delivery on the Depot location."); return;
-                 }
-                 if (existingIndex > 0) { // Clicked on existing delivery - Move it (or delete?) Let's move.
-                     // No action needed to move currently, just note it exists
-                     console.log(`Clicked on existing Delivery ${existingIndex}. To move, place it elsewhere.`);
-                     // OR Implement delete on second click? Simpler to just place new ones.
-                 } else { // Clicked on empty cell - Add new delivery
-                     if (deliveryLocations.length >= MAX_ALLOWED_DELIVERIES) {
-                          alert(`Maximum number of deliveries (${MAX_ALLOWED_DELIVERIES}) reached.`); return;
-                     }
-                     const newLoc = { r, c };
-                     deliveryLocations.push(newLoc);
-                     console.log(`Delivery ${deliveryLocations.length} manually placed at:`, newLoc);
-                     locationsChanged = true;
+                 if (isExistingDepot) { alert("Cannot place Delivery on the Depot location."); return; }
+                 if (existingDeliveryIndex !== -1) { // Clicked existing delivery: Remove it
+                     deliveryLocations.splice(existingDeliveryIndex, 1); locationsChanged = true;
+                     console.log(`Delivery ${existingDeliveryIndex+1} removed.`);
+                 } else { // Clicked empty: Add new delivery
+                     if (deliveryLocations.length >= MAX_ALLOWED_DELIVERIES) { alert(`Max ${MAX_ALLOWED_DELIVERIES} deliveries reached.`); return; }
+                     deliveryLocations.push({ r, c }); locationsChanged = true;
+                     console.log(`Delivery ${deliveryLocations.length} placed at:`, {r,c});
                  }
                  break;
          }
 
          if (locationsChanged) {
-             updateAllLocations(); // Rebuild the combined list
-             NUM_DELIVERIES = deliveryLocations.length; // Update count
-             numDeliveriesDisplay.value = NUM_DELIVERIES; // Update display
-             nextDeliveryIndexToPlace = NUM_DELIVERIES + 1;
-             initQTable(); // Learning is invalidated
-             resetSimulationStats();
-             bestRoute = []; bestRouteCost = Infinity; // Clear best route
-             setStatus("Locations changed. Learning Reset.", "idle");
-             requestAnimationFrame(draw); // Redraw with new locations
+             updateAllLocations(); NUM_DELIVERIES = deliveryLocations.length;
+             numDeliveriesDisplay.value = NUM_DELIVERIES; nextDeliveryIndexToPlace = NUM_DELIVERIES + 1;
+             initQTable(); resetSimulationStats(); bestRoute = []; bestRouteCost = Infinity;
+             setStatus("Locations changed. Learning Reset.", "idle"); requestAnimationFrame(draw);
          }
      }
-     // Remove mousemove/out handlers and cellinfobox update if not needed
+     // Removed mousemove/out and cellinfobox logic
      function handleCanvasMouseMove(e) { /* Stub */ }
      function handleCanvasMouseOut() { /* Stub */ }
      function updateCellInfoBox(r, c) { /* Stub */ }
 
+
     // --- Persistence ---
-    function saveQTable() { /* ... (same, uses v2 key) ... */ }
-    function loadQTable() { /* ... (same, uses v2 key, validates gridSize/numDeliveries) ... */ }
+    function saveQTable() { /* ... (same as before) ... */ }
+    function loadQTable() { /* ... (same as before) ... */ }
 
 
     // --- Initial Setup & Resize Handling ---
