@@ -3,85 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Q-Learning Visualization</title>
+    <title>World-Class Q-Learning Visualizer</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Q-Learning Agent Navigation</h1>
-        <p>Visualizing Reinforcement Learning in a Grid World</p>
-    </header>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <h1>Q-Learning Grid World Explorer</h1>
+        </header>
 
-    <main class="container">
-        <section class="controls-panel top-controls">
-            <div class="control-group">
-                <label for="gridSize">Grid Size:</label>
-                <select id="gridSize">
-                    <option value="5">5x5</option>
-                    <option value="6">6x6</option>
-                    <option value="8" selected>8x8</option>
-                    <option value="10">10x10</option>
-                    <option value="12">12x12</option>
-                </select>
-            </div>
-            <div class="control-group range-group">
-                <label for="obstacleProb">Obstacle %:</label>
-                <input type="range" id="obstacleProb" min="0" max="50" value="20" step="1">
-                <span id="obstacleProbValue">20%</span>
-            </div>
-             <div class="control-group">
-                <button id="resetEnvBtn" class="btn btn-secondary">Reset Environment</button>
-            </div>
-        </section>
+        <aside class="dashboard-sidebar left-sidebar">
+            <div class="sidebar-section">
+                <h2>Environment Settings</h2>
+                <div class="control-group">
+                    <label for="gridSize">Grid Size:</label>
+                    <select id="gridSize">
+                        <option value="6">6x6</option>
+                        <option value="8">8x8</option>
+                        <option value="10" selected>10x10</option>
+                        <option value="12">12x12</option>
+                        <option value="15">15x15</option>
+                    </select>
+                </div>
+                <div class="control-group range-group">
+                    <label for="obstacleProb" title="Initial probability for random obstacles">Obstacle %:</label>
+                    <input type="range" id="obstacleProb" min="0" max="60" value="25" step="1">
+                    <span id="obstacleProbValue">25%</span>
+                </div>
+                 <div class="control-group edit-mode-group">
+                    <label>Grid Edit Mode:</label>
+                    <div class="radio-group">
+                        <input type="radio" id="editModeNone" name="editMode" value="none" checked><label for="editModeNone">None</label>
+                        <input type="radio" id="editModeObstacle" name="editMode" value="obstacle"><label for="editModeObstacle">Obstacle</label>
+                        <input type="radio" id="editModeStart" name="editMode" value="start"><label for="editModeStart">Start (S)</label>
+                        <input type="radio" id="editModeGoal" name="editMode" value="goal"><label for="editModeGoal">Goal (G)</label>
+                    </div>
+                 </div>
+                 <button id="resetEnvBtn" class="btn btn-secondary full-width">Generate New Environment</button>
+                 <button id="clearObstaclesBtn" class="btn btn-secondary full-width">Clear Obstacles</button>
 
-        <section class="visualization-area">
-            <canvas id="gridCanvas" width="520" height="520"></canvas>
-        </section>
+            </div>
 
-        <section class="controls-panel bottom-controls">
-             <div class="control-group range-group">
-                 <label for="speed">Speed:</label>
-                 <input type="range" id="speed" min="10" max="1000" value="250" step="10">
-                 <span id="speedValue">Medium</span>
+             <div class="sidebar-section">
+                <h2>Algorithm Parameters</h2>
+                 <div class="control-group range-group">
+                    <label for="learningRate" title="Alpha: How much new information overrides old">Learn Rate (α):</label>
+                    <input type="range" id="learningRate" min="0.01" max="1.0" value="0.1" step="0.01">
+                    <span id="learningRateValue">0.10</span>
+                </div>
+                 <div class="control-group range-group">
+                    <label for="discountFactor" title="Gamma: Importance of future rewards">Discount (γ):</label>
+                    <input type="range" id="discountFactor" min="0.5" max="1.0" value="0.95" step="0.01">
+                    <span id="discountFactorValue">0.95</span>
+                </div>
+                <div class="control-group range-group">
+                    <label for="epsilonStart" title="Initial exploration probability">Epsilon Start:</label>
+                    <input type="range" id="epsilonStart" min="0.1" max="1.0" value="1.0" step="0.05">
+                    <span id="epsilonStartValue">1.00</span>
+                </div>
+                 <div class="control-group range-group">
+                    <label for="epsilonDecay" title="Multiplicative decay per episode">Epsilon Decay:</label>
+                    <input type="range" id="epsilonDecay" min="0.990" max="0.9999" value="0.999" step="0.0001">
+                    <span id="epsilonDecayValue">0.9990</span>
+                </div>
+                 <div class="control-group range-group">
+                    <label for="epsilonMin" title="Minimum exploration probability">Epsilon Min:</label>
+                    <input type="range" id="epsilonMin" min="0" max="0.5" value="0.05" step="0.01">
+                    <span id="epsilonMinValue">0.05</span>
+                </div>
+                 <div class="control-group">
+                     <label for="maxEpisodes" title="Maximum training episodes">Max Episodes:</label>
+                     <input type="number" id="maxEpisodes" value="2000" min="100" step="100">
+                 </div>
+                 <button id="resetQTableBtn" class="btn btn-warning full-width">Reset Q-Table & Training</button>
             </div>
-            <div class="control-group">
-                <button id="startTrainingBtn" class="btn btn-primary">Start Training</button>
-                <button id="stopTrainingBtn" class="btn btn-danger" disabled>Stop Training</button>
-            </div>
-             <div class="control-group">
-                 <button id="runGreedyBtn" class="btn btn-success">Run Greedy Policy</button>
-            </div>
-             <div class="control-group toggle-group">
-                 <label for="showQArrows">Show Q-Arrows:</label>
-                 <input type="checkbox" id="showQArrows" checked>
-                 <label for="showHeatmap">Show Value Heatmap:</label>
-                 <input type="checkbox" id="showHeatmap" checked>
-                  <label for="showPath">Show Path:</label>
-                 <input type="checkbox" id="showPath" checked>
-            </div>
-        </section>
 
-        <section id="info-panel">
-             <h2>Simulation Info</h2>
-             <div class="info-grid">
-                <p>Status:</p><p><span id="statusDisplay">Initialized. Ready.</span></p>
-                <p>Episode:</p><p><span id="episodeDisplay">0</span>/<span id="totalEpisodesDisplay">1500</span></p>
-                <p>Step:</p><p><span id="stepsDisplay">0</span></p>
-                <p>Episode Reward:</p><p><span id="rewardDisplay">0</span></p>
-                <p>Avg Reward (Last 50):</p><p><span id="avgRewardDisplay">N/A</span></p>
-                 <p>Epsilon (Explore %):</p><p><span id="epsilonDisplay">1.000</span></p>
-                 <p>Global Max Q:</p><p><span id="globalMaxQDisplay">0.0</span></p>
-                 <p>Global Min Q:</p><p><span id="globalMinQDisplay">0.0</span></p>
-            </div>
-        </section>
-    </main>
+             <div class="sidebar-section">
+                 <h2>Persistence</h2>
+                 <button id="saveQTableBtn" class="btn btn-secondary full-width">Save Q-Table</button>
+                 <button id="loadQTableBtn" class="btn btn-secondary full-width">Load Q-Table</button>
+             </div>
+        </aside>
 
-    <footer>
-        <p>A Q-Learning demonstration using HTML Canvas and JavaScript.</p>
-    </footer>
+        <main class="dashboard-main">
+            <div class="canvas-container">
+                <canvas id="gridCanvas" width="600" height="600"></canvas>
+                 <div id="cellInfoBox">
+                     Cell: (-, -)<br>
+                     State Idx: -<br>
+                     Type: -<br>
+                     MaxQ: -<br>
+                     Q(U): - | Q(D): - | Q(L): - | Q(R): -
+                 </div>
+            </div>
+            <div class="main-controls">
+                <div class="control-group range-group">
+                     <label for="speed">Speed:</label>
+                     <input type="range" id="speed" min="0" max="1000" value="300" step="10">
+                     <span id="speedValue">Medium</span>
+                </div>
+                <div class="control-group main-buttons">
+                    <button id="startTrainingBtn" class="btn btn-primary">▶ Train</button>
+                    <button id="pauseTrainingBtn" class="btn btn-warning" disabled>❚❚ Pause</button>
+                    <button id="stopTrainingBtn" class="btn btn-danger" disabled>■ Stop</button>
+                    <button id="stepBtn" class="btn btn-secondary">⇢ Step</button>
+                    <button id="runGreedyBtn" class="btn btn-success">★ Run Greedy</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="rewardChart"></canvas>
+            </div>
+        </main>
+
+        <aside class="dashboard-sidebar right-sidebar">
+             <div class="sidebar-section">
+                <h2>Visualization</h2>
+                <div class="control-group toggle-group">
+                     <input type="checkbox" id="showQArrows" checked><label for="showQArrows">Q-Value Arrows</label>
+                 </div>
+                 <div class="control-group toggle-group">
+                     <input type="checkbox" id="showPolicyArrows" checked><label for="showPolicyArrows">Best Policy Arrows</label>
+                 </div>
+                <div class="control-group toggle-group">
+                    <input type="checkbox" id="showHeatmap" checked><label for="showHeatmap">Value Heatmap</label>
+                </div>
+                <div class="control-group toggle-group">
+                    <input type="checkbox" id="showPath" checked><label for="showPath">Agent Path</label>
+                </div>
+                 <div class="control-group toggle-group">
+                     <input type="checkbox" id="showAgentTrail" checked><label for="showAgentTrail">Agent Trail</label>
+                 </div>
+             </div>
+              <div class="sidebar-section">
+                 <h2>Simulation Info</h2>
+                 <div class="info-grid">
+                    <p>Status:</p><p><span id="statusDisplay">Initializing...</span></p>
+                    <p>Episode:</p><p><span id="episodeDisplay">0</span>/<span id="totalEpisodesDisplay">2000</span></p>
+                    <p>Step:</p><p><span id="stepsDisplay">0</span></p>
+                    <p>Epsilon:</p><p><span id="epsilonDisplay">1.000</span></p>
+                    <p>Episode Reward:</p><p><span id="rewardDisplay">0</span></p>
+                    <p>Avg Reward (Last 100):</p><p><span id="avgRewardDisplay">N/A</span></p>
+                     <p>Global Max Q:</p><p><span id="globalMaxQDisplay">0.0</span></p>
+                     <p>Global Min Q:</p><p><span id="globalMinQDisplay">0.0</span></p>
+                     <p>Q-Table Size:</p><p><span id="qTableSizeDisplay">0</span> states</p>
+                 </div>
+            </div>
+        </aside>
+
+    </div> <!-- dashboard-container end -->
 
     <script src="script.js"></script>
 </body>
