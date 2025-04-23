@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robust Q-Learning Visualizer</title>
+    <title>Polished Q-Learning Visualizer</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,7 +44,7 @@
                         </div>
                      </div>
                      <button id="resetEnvBtn" class="btn btn-secondary full-width">Generate New</button>
-                     <button id="clearObstaclesBtn" class="btn btn-secondary full-width">Clear Walls</button>
+                     <button id="clearObstaclesBtn" class="btn btn-outline full-width">Clear Walls</button> <!-- Outline style -->
                 </div>
 
                  <div class="sidebar-section">
@@ -82,28 +82,28 @@
                  </div>
                  <div class="sidebar-section">
                      <h2>Persistence</h2>
-                     <button id="saveQTableBtn" class="btn btn-secondary full-width">Save Policy</button>
-                     <button id="loadQTableBtn" class="btn btn-secondary full-width">Load Policy</button>
+                     <button id="saveQTableBtn" class="btn btn-outline full-width">Save Policy</button> <!-- Outline style -->
+                     <button id="loadQTableBtn" class="btn btn-outline full-width">Load Policy</button> <!-- Outline style -->
                  </div>
             </aside>
 
             <main class="main-panel">
                 <div class="canvas-container">
-                    <canvas id="gridCanvas" width="500" height="500"></canvas> <!-- Adjusted default size -->
+                    <canvas id="gridCanvas" width="500" height="500"></canvas>
                      <div id="cellInfoBox">Cell Info</div>
                 </div>
                 <div class="main-controls">
                     <div class="control-group range-group">
                          <label for="speed">Speed:</label>
-                         <input type="range" id="speed" min="0" max="1000" value="300" step="10">
-                         <span id="speedValue">Medium</span>
+                         <input type="range" id="speed" min="0" max="1000" value="500" step="10"> <!-- Default to Medium-Fast -->
+                         <span id="speedValue">Fast</span>
                     </div>
                     <div class="control-group main-buttons">
-                        <button id="startTrainingBtn" class="btn btn-primary" title="Start/Resume Training">▶ Train</button>
-                        <button id="pauseTrainingBtn" class="btn btn-warning" disabled title="Pause Training">❚❚ Pause</button>
-                        <button id="stopTrainingBtn" class="btn btn-danger" disabled title="Stop Simulation">■ Stop</button>
-                        <button id="stepBtn" class="btn btn-secondary" title="Run One Step">⇢ Step</button>
-                        <button id="runGreedyBtn" class="btn btn-success" title="Run using learned policy">★ Greedy</button>
+                        <button id="startTrainingBtn" class="btn btn-primary btn-icon" title="Start/Resume Training">▶<span> Train</span></button> <!-- Icon added -->
+                        <button id="pauseTrainingBtn" class="btn btn-warning btn-icon" disabled title="Pause Training">❚❚<span> Pause</span></button> <!-- Icon added -->
+                        <button id="stopTrainingBtn" class="btn btn-danger btn-icon" disabled title="Stop Simulation">■<span> Stop</span></button> <!-- Icon added -->
+                        <button id="stepBtn" class="btn btn-secondary btn-icon" title="Run One Step">⇢<span> Step</span></button> <!-- Icon added -->
+                        <button id="runGreedyBtn" class="btn btn-success btn-icon" title="Run using learned policy">★<span> Greedy</span></button> <!-- Icon added -->
                     </div>
                 </div>
                 <div class="chart-container">
@@ -114,20 +114,22 @@
             <aside class="sidebar right-sidebar">
                 <div class="sidebar-section">
                     <h2>Visualization</h2>
-                    <div class="control-group toggle-group">
-                         <input type="checkbox" id="showQArrows" checked><label for="showQArrows">Q-Value Arrows</label>
-                     </div>
-                     <div class="control-group toggle-group">
-                         <input type="checkbox" id="showPolicyArrows" checked><label for="showPolicyArrows">Policy Arrows</label>
-                     </div>
-                    <div class="control-group toggle-group">
-                        <input type="checkbox" id="showHeatmap" checked><label for="showHeatmap">Value Heatmap</label>
-                    </div>
-                    <div class="control-group toggle-group">
-                        <input type="checkbox" id="showPath" checked><label for="showPath">Agent Path</label>
-                    </div>
-                     <div class="control-group toggle-group">
-                         <input type="checkbox" id="showAgentTrail" checked><label for="showAgentTrail">Agent Trail</label>
+                    <div class="viz-toggles"> <!-- Group toggles -->
+                        <div class="control-group toggle-group">
+                             <input type="checkbox" id="showHeatmap" checked><label for="showHeatmap">Value Heatmap</label>
+                         </div>
+                        <div class="control-group toggle-group">
+                            <input type="checkbox" id="showQArrows" checked><label for="showQArrows">Q-Value Arrows</label>
+                        </div>
+                        <div class="control-group toggle-group">
+                            <input type="checkbox" id="showPolicyArrows" checked><label for="showPolicyArrows">Policy Arrows</label>
+                        </div>
+                        <div class="control-group toggle-group">
+                            <input type="checkbox" id="showPath" checked><label for="showPath">Agent Path</label>
+                        </div>
+                         <div class="control-group toggle-group">
+                             <input type="checkbox" id="showAgentTrail" checked><label for="showAgentTrail">Agent Trail</label>
+                         </div>
                      </div>
                  </div>
                   <div class="sidebar-section">
