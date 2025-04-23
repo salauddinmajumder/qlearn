@@ -1,96 +1,670 @@
-body {
-    font-family: sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background-color: #f4f4f4;
-    color: #333;
-}
+// This line waits for the entire HTML page (like the buttons, canvas, text areas)
+// to be fully loaded and ready before running any JavaScript code inside.
+// It's important because we need those HTML elements to exist before we try to control them.
+document.addEventListener('DOMContentLoaded', () => {
 
-h1 {
-    color: #2c3e50;
-}
+    // --- Getting Our Tools Ready (DOM Elements) ---
+    // We need to grab references to the interactive parts of our HTML page
+    // so our JavaScript can read their values or change what they display.
+    // Think of these like getting handles to the buttons and screens on a machine.
 
-canvas {
-    border: 2px solid #34495e;
-    background-color: #fff;
-    margin-top: 15px;
-    margin-bottom: 15px;
-    box-shadow: 3px 3px 8px rgba(0,0,0,0.1);
-}
+    // Get the drawing area (the <canvas> element)
+    const canvas = document.getElementById('gridCanvas');
+    // Get the "drawing context" - this is the object with tools to draw shapes/colors on the canvas
+    const ctx = canvas.getContext('2d');
+    // Get the dropdown menu for selecting grid size
+    const gridSizeSelect = document.getElementById('gridSize');
+    // Get the slider for obstacle probability
+    const obstacleProbSlider = document.getElementById('obstacleProb');
+    // Get the text area (<span>) next to the slider to show the current percentage
+    const obstacleProbValueSpan = document.getElementById('obstacleProbValue');
+    // Get the "Reset Environment" button
+    const resetEnvBtn = document.getElementById('resetEnvBtn');
+    // Get the slider that controls the animation speed
+    const speedSlider = document.getElementById('speed');
+    // Get the text area (<span>) next to the speed slider
+    const speedValueSpan = document.getElementById('speedValue');
+    // Get the "Start Training" button
+    const startTrainingBtn = document.getElementById('startTrainingBtn');
+    // Get the "Stop Training" button
+    const stopTrainingBtn = document.getElementById('stopTrainingBtn');
+    // Get the "Run Greedy Policy" button (this shows the agent's learned path without exploring)
+    const runGreedyBtn = document.getElementById('runGreedyBtn');
+    // Get the text area (<span>) where we show status messages (like "Training...", "Finished.")
+    const statusDisplay = document.getElementById('statusDisplay');
+    // Get the text area (<span>) to show the current episode number
+    const episodeDisplay = document.getElementById('episodeDisplay');
+    // Get the text area (<span>) to show the total number of episodes we plan to run
+    const totalEpisodesDisplay = document.getElementById('totalEpisodesDisplay');
+    // Get the text area (<span>) to show the steps taken in the current episode
+    const stepsDisplay = document.getElementById('stepsDisplay');
+    // Get the text area (<span>) to show the reward collected in the current episode
+    const rewardDisplay = document.getElementById('rewardDisplay');
+    // Get the text area (<span>) to show the current exploration rate (Epsilon)
+    const epsilonDisplay = document.getElementById('epsilonDisplay');
+    // Get the text area (<span>) to show the average reward over recent episodes
+    const avgRewardDisplay = document.getElementById('avgRewardDisplay');
 
-.controls {
-    margin-bottom: 15px;
-    background-color: #ecf0f1;
-    padding: 10px 15px;
-    border-radius: 5px;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
-    display: flex;
-    align-items: center;
-    gap: 15px; /* Adds space between control items */
-}
+    // --- Setting Up the Rules of the Game (Configuration) ---
+    // These are like the basic settings for our grid world and learning process.
 
-.controls label {
-    font-weight: bold;
-}
+    // Read the initial grid size from the dropdown menu (default is 6x6)
+    let GRID_SIZE = parseInt(gridSizeSelect.value);
+    // Read the initial obstacle probability from the slider (default is 15%)
+    let OBSTACLE_PROB = parseInt(obstacleProbSlider.value) / 100;
+    // Calculate the pixel size of each grid cell based on canvas width and grid size
+    let CELL_SIZE = canvas.width / GRID_SIZE;
 
-.controls button, .controls select, .controls input[type="range"] {
-    padding: 8px 12px;
-    border: 1px solid #bdc3c7;
-    border-radius: 4px;
-    background-color: #fff;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
+    // Define the colors we'll use for drawing (using names defined in the style.css file)
+    // `getCssVar` is a helper function (defined later) to read these CSS color values.
+    const START_COLOR = getCssVar('--color-start');   // Color for the starting square
+    const GOAL_COLOR = getCssVar('--color-goal');    // Color for the goal square
+    const OBSTACLE_COLOR = getCssVar('--color-obstacle'); // Color for obstacle squares
+    const EMPTY_COLOR = getCssVar('--color-empty');     // Color for empty squares
+    const AGENT_COLOR = getCssVar('--color-agent');     // Color for our agent (the learner)
+    const PATH_COLOR = getCssVar('--color-path');      // Color for the path the agent takes
+    const Q_ARROW_COLOR = getCssVar('--color-q-arrow'); // Color for arrows showing learned values
+    const GRID_LINE_COLOR = getCssVar('--color-grid-line'); // Color for the grid lines
 
-.controls button:hover:not(:disabled) {
-    background-color: #e0e0e0;
-}
-.controls button:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-/* Style range inputs specifically */
-.controls input[type="range"] {
-    padding: 0; /* Remove default padding */
-    vertical-align: middle; /* Align with labels/buttons */
-}
+    // Define the rewards and penalties the agent receives
+    const REWARD_GOAL = 20;      // Big reward for reaching the goal!
+    const REWARD_OBSTACLE = -20; // Big penalty for hitting an obstacle!
+    const REWARD_STEP = -1;      // Small penalty for each step (encourages efficiency)
+
+    // Define the possible actions the agent can take (numbers are easier for code)
+    const ACTIONS = { UP: 0, DOWN: 1, LEFT: 2, RIGHT: 3 };
+    // Define how each action changes the agent's position (row, column)
+    const ACTION_DELTAS = {
+        [ACTIONS.UP]: { r: -1, c: 0 },    // Up decreases row number
+        [ACTIONS.DOWN]: { r: 1, c: 0 },   // Down increases row number
+        [ACTIONS.LEFT]: { r: 0, c: -1 },  // Left decreases column number
+        [ACTIONS.RIGHT]: { r: 0, c: 1 }, // Right increases column number
+    };
+
+    // --- Parameters Controlling *How* the Agent Learns (Q-Learning) ---
+
+    const LEARNING_RATE = 0.1;  // Alpha: How much we update Q-values based on new info (0 to 1). Small = slow learning.
+    const DISCOUNT_FACTOR = 0.95; // Gamma: How much we value future rewards (0 to 1). Close to 1 = farsighted.
+    let epsilon = 1.0;           // Exploration rate: Starts at 1.0 (100% random actions)
+    const EPSILON_DECAY = 0.998; // How much epsilon decreases after each episode (e.g., 1.0 -> 0.998 -> 0.996...)
+    const MIN_EPSILON = 0.05;    // Minimum exploration rate (never becomes 0% random)
+    const MAX_EPISODES = 1000;   // How many practice runs (episodes) the agent gets
+    let MAX_STEPS_PER_EPISODE = GRID_SIZE * GRID_SIZE * 1.5; // Max moves allowed per episode (prevents infinite loops)
+
+    // --- Variables That Change During the Simulation (State) ---
+    // These store the current situation of the world and the agent's knowledge.
+
+    let grid = [];               // The 2D array representing the grid world (stores 0 for empty, -1 for obstacle)
+    let qTable = {};             // The agent's "brain"! Stores Q-values. Example: qTable[stateIndex] = [qUp, qDown, qLeft, qRight]
+    let startPos = { r: 0, c: 0 }; // Default start position (top-left)
+    let goalPos = { r: GRID_SIZE - 1, c: GRID_SIZE - 1 }; // Default goal (bottom-right)
+    let agentPos = { r: 0, c: 0 }; // Agent's current position (row, column)
+    let currentEpisode = 0;      // Which practice run we are on
+    let currentStep = 0;         // How many steps taken in the current episode
+    let episodeReward = 0;       // Total reward collected in the current episode
+    let episodePath = [];        // Array to store the sequence of squares the agent visited in the episode (for drawing the path)
+    let isTraining = false;      // Flag: Is the agent currently learning (updating Q-table)?
+    let isRunning = false;       // Flag: Is any simulation (training or greedy run) currently active?
+    let animationFrameId = null; // Used internally for smooth animation (ignore for now)
+    let stepDelay = 1000 - parseInt(speedSlider.value); // Delay in milliseconds between agent steps (controls speed)
+    let recentRewards = [];      // Stores rewards from the last few episodes
+    const REWARD_AVERAGE_WINDOW = 50; // How many recent episodes to average over
+
+    // --- Small Helper Functions (Utilities) ---
+
+    // Helper to get color values defined in the style.css file
+    function getCssVar(varName) {
+        return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    }
+
+    // Converts a state {r, c} object into a single number index.
+    // Useful for using states as keys in the qTable object.
+    // Example: In a 6x6 grid, state {r:1, c:2} becomes index 1*6 + 2 = 8.
+    function stateToIndex(state) {
+        return state.r * GRID_SIZE + state.c;
+    }
+
+    // Checks if a given row and column are within the grid boundaries.
+    function isValid(r, c) {
+        return r >= 0 && r < GRID_SIZE && c >= 0 && c < GRID_SIZE;
+    }
+
+    // A simple function to pause the code execution for a given number of milliseconds.
+    // This is essential for slowing down the animation so we can see the steps.
+    // Uses Promises and async/await, which are modern ways to handle delays in JS.
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Updates the text next to the speed slider (e.g., "Fast", "Slow")
+    function updateSpeedDisplay(value) {
+        if (value > 900) speedValueSpan.textContent = 'Very Fast';
+        else if (value > 600) speedValueSpan.textContent = 'Fast';
+        else if (value > 300) speedValueSpan.textContent = 'Medium';
+        else if (value > 50) speedValueSpan.textContent = 'Slow';
+        else speedValueSpan.textContent = 'Very Slow';
+        stepDelay = 1000 - value; // Higher slider value means smaller delay (faster)
+    }
+
+    // --- Setting Up the World (Environment Initialization) ---
+
+    // This function creates or resets the entire grid world.
+    function initializeEnvironment() {
+        grid = [];               // Clear the old grid
+        qTable = {};             // Clear the agent's learned knowledge (Q-table)
+        epsilon = 1.0;           // Reset exploration rate to maximum
+        currentEpisode = 0;      // Reset episode counter
+        recentRewards = [];      // Clear recent reward history
+        updateInfoDisplay();     // Reset the text displays (Episode: 0, etc.)
+
+        // Create the grid structure (a 2D array)
+        for (let r = 0; r < GRID_SIZE; r++) {
+            grid[r] = []; // Create a new row
+            for (let c = 0; c < GRID_SIZE; c++) {
+                // Randomly decide if this cell is an obstacle based on OBSTACLE_PROB
+                grid[r][c] = Math.random() < OBSTACLE_PROB ? -1 : 0; // -1 means obstacle, 0 means empty
+            }
+        }
+
+        // Define default start and goal positions
+        startPos = { r: 0, c: 0 };
+        goalPos = { r: GRID_SIZE - 1, c: GRID_SIZE - 1 };
+
+        // **Important:** Make sure the start and goal squares themselves are NOT obstacles!
+        grid[startPos.r][startPos.c] = 0;
+        grid[goalPos.r][goalPos.c] = 0;
+
+        // (Optional: Add more robust checks here to guarantee start/goal are findable if defaults are blocked)
+        // This simple version just clears the default spots.
+
+        resetAgent(); // Put the agent at the starting position
+        drawGrid();   // Draw the newly created grid on the canvas
+        setStatus('Initialized. Ready to train.'); // Update the status message
+    }
+
+    // Resets the agent's state for the beginning of a new episode.
+    function resetAgent() {
+        agentPos = { ...startPos }; // Place agent at the start position (using {...} creates a copy)
+        currentStep = 0;            // Reset step counter for the episode
+        episodeReward = 0;          // Reset reward for the episode
+        episodePath = [ { ...agentPos } ]; // Start the path trace with the starting position
+    }
 
 
-#info {
-    margin-top: 10px;
-    background-color: #e8f6fd;
-    border: 1px solid #aedff7;
-    padding: 10px 20px;
-    border-radius: 5px;
-    min-width: 300px;
-    text-align: left;
-}
+    // --- Functions to Draw on the Canvas (Visualization) ---
 
-#info p {
-    margin: 5px 0;
-    line-height: 1.4;
-}
+     // Draws the entire grid, including cells, obstacles, start, goal, Q-arrows, path, and agent.
+     function drawGrid() {
+        // Clear the canvas completely before drawing the new frame
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Set the color for the grid lines
+        ctx.strokeStyle = GRID_LINE_COLOR;
 
-#info span {
-    font-weight: bold;
-    color: #2980b9;
-}
+        // Loop through every cell in the grid
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                // Determine the background color of the cell
+                let color = EMPTY_COLOR; // Default to empty
+                if (r === startPos.r && c === startPos.c) color = START_COLOR;
+                else if (r === goalPos.r && c === goalPos.c) color = GOAL_COLOR;
+                else if (grid[r][c] === -1) color = OBSTACLE_COLOR;
 
-/* Specific styles for status */
-#statusDisplay.training { color: #f39c12; }
-#statusDisplay.greedy { color: #2ecc71; }
-#statusDisplay.stopped { color: #e74c3c; }
-#statusDisplay.finished { color: #16a085; }
+                // Draw the cell rectangle with its background color
+                ctx.fillStyle = color;
+                ctx.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                // Draw the border around the cell (the grid line)
+                ctx.strokeRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
 
-/* Cell type colors */
-:root {
-    --color-empty: #ffffff;
-    --color-obstacle: #34495e;
-    --color-start: #3498db;
-    --color-goal: #2ecc71;
-    --color-agent: #e74c3c;
-    --color-path: rgba(231, 76, 60, 0.3); /* Faint red for path */
-    --color-q-arrow: #f39c12; /* Orange for Q-value arrows */
-    --color-grid-line: #ecf0f1;
-}
+                // If the cell is not an obstacle, draw the Q-value arrows inside it
+                if (grid[r][c] !== -1) {
+                   drawQArrows(r, c);
+                }
+            }
+        }
+        // Draw the path the agent has taken in this episode (semi-transparent squares)
+        drawPath();
+        // Draw the agent (red circle) on top of everything else
+        drawAgent();
+    }
+
+     // Draws the agent as a circle in its current cell.
+     function drawAgent() {
+        ctx.fillStyle = AGENT_COLOR; // Use the agent's color
+        // Calculate the center coordinates of the agent's cell
+        const centerX = agentPos.c * CELL_SIZE + CELL_SIZE / 2;
+        const centerY = agentPos.r * CELL_SIZE + CELL_SIZE / 2;
+        // Make the radius slightly smaller than half the cell size
+        const radius = CELL_SIZE * 0.35;
+        // Draw the circle
+        ctx.beginPath(); // Start drawing a new shape
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI); // Define the circle
+        ctx.fill(); // Fill the circle with the agent's color
+    }
+
+    // Draws a faint trail showing where the agent has been in the current episode.
+    function drawPath() {
+        if (episodePath.length < 2) return; // Don't draw if path is too short
+        ctx.fillStyle = PATH_COLOR; // Use the semi-transparent path color
+        // Draw a small square in the center of each cell the agent visited
+        for (const pos of episodePath) {
+            ctx.fillRect(
+                pos.c * CELL_SIZE + CELL_SIZE * 0.25, // x position (slightly indented)
+                pos.r * CELL_SIZE + CELL_SIZE * 0.25, // y position (slightly indented)
+                CELL_SIZE * 0.5,                     // width (half cell size)
+                CELL_SIZE * 0.5                      // height (half cell size)
+            );
+        }
+    }
+
+     // Draws small arrows inside a cell representing the learned Q-values for each action.
+     // Longer arrows indicate higher Q-values (better perceived actions).
+     function drawQArrows(r, c) {
+        const stateIdx = stateToIndex({ r, c }); // Get the index for this state
+        // Get the Q-values for this state [Up, Down, Left, Right]. If state not visited, use [0,0,0,0].
+        const qValues = qTable[stateIdx] || [0, 0, 0, 0];
+
+        // Find the highest and lowest Q-value *in this specific cell*
+        // This is used to scale the arrow lengths relative to each other within the cell.
+        let maxQ = -Infinity;
+        let minQ = Infinity;
+         qValues.forEach(q => {
+             if (q > maxQ) maxQ = q;
+             if (q < minQ) minQ = q;
+         });
+
+        // Don't draw arrows if all Q-values are the same (or very close), avoids division by zero and clutter.
+         if (maxQ === minQ || Math.abs(maxQ - minQ) < 0.01) {
+             return;
+         }
+
+        // Calculate drawing positions and sizes
+        const centerX = c * CELL_SIZE + CELL_SIZE / 2;
+        const centerY = r * CELL_SIZE + CELL_SIZE / 2;
+        const arrowBaseSize = CELL_SIZE * 0.1;   // How wide the base of the arrow triangle is
+        const maxArrowLength = CELL_SIZE * 0.35; // Maximum length an arrow can have
+
+        // Set the drawing color and line width for the arrows
+        ctx.fillStyle = Q_ARROW_COLOR;
+        ctx.strokeStyle = Q_ARROW_COLOR;
+        ctx.lineWidth = 1;
+
+        // Loop through each of the 4 actions (Up, Down, Left, Right)
+        for (let action = 0; action < 4; action++) {
+            const q = qValues[action]; // Get the Q-value for this specific action
+
+            // Scale the Q-value to be between 0 and 1, relative to the min/max Q in *this* cell.
+            // This `normalizedQ` determines the arrow's length.
+            const normalizedQ = (maxQ === minQ) ? 0.5 : (q - minQ) / (maxQ - minQ);
+            // Calculate the actual pixel length of the arrow
+            const arrowLength = maxArrowLength * normalizedQ;
+
+            if (arrowLength < 1) continue; // Don't draw arrows that are too tiny
+
+            ctx.beginPath(); // Start drawing the arrow triangle
+            let arrowTipX, arrowTipY;
+            const delta = ACTION_DELTAS[action]; // Get the {r, c} change for this action
+
+            // Calculate the coordinate of the arrow's tip
+            arrowTipX = centerX + delta.c * arrowLength; // Move horizontally based on action and length
+            arrowTipY = centerY + delta.r * arrowLength; // Move vertically based on action and length
+
+            // Calculate the coordinates of the two base points of the triangle
+            // Uses a perpendicular vector trick to find points offset from the arrow's shaft
+            const perpDx = -delta.r;
+            const perpDy = delta.c;
+            const base1X = centerX + delta.c * (arrowLength * 0.5) + perpDx * arrowBaseSize; // Point 1
+            const base1Y = centerY + delta.r * (arrowLength * 0.5) + perpDy * arrowBaseSize;
+            const base2X = centerX + delta.c * (arrowLength * 0.5) - perpDx * arrowBaseSize; // Point 2
+            const base2Y = centerY + delta.r * (arrowLength * 0.5) - perpDy * arrowBaseSize;
+
+            // Define the triangle shape
+            ctx.moveTo(arrowTipX, arrowTipY); // Start at the tip
+            ctx.lineTo(base1X, base1Y);       // Draw line to base point 1
+            ctx.lineTo(base2X, base2Y);       // Draw line to base point 2
+            ctx.closePath();                  // Connect back to the tip (forms triangle)
+            ctx.fill();                       // Fill the triangle with color
+        }
+    }
+
+    // --- The Brain of the Agent (Q-Learning Logic) ---
+
+    // Safely gets the Q-value for a given state and action. Returns 0 if the state hasn't been visited.
+    function getQValue(stateIdx, action) {
+        // If qTable[stateIdx] exists, return the value at the action index, otherwise return 0.
+        return (qTable[stateIdx] || [0, 0, 0, 0])[action];
+    }
+
+    // Gets the highest Q-value among all actions for a given state. Returns 0 if state not visited.
+    function getMaxQValue(stateIdx) {
+        // If qTable[stateIdx] exists, find the max value in the array, otherwise return 0.
+        return Math.max(...(qTable[stateIdx] || [0, 0, 0, 0]));
+    }
+
+     // Decides which action the agent should take based on its current state.
+     // Uses the Epsilon-Greedy strategy.
+     function chooseAction(stateIdx) {
+        // Exploration: If we are training AND a random number is less than epsilon...
+        if (isTraining && Math.random() < epsilon) {
+            // ...choose a completely random action (0, 1, 2, or 3).
+            return Math.floor(Math.random() * 4);
+        } else {
+            // Exploitation: Choose the action that has the highest Q-value currently known for this state.
+            const qValues = qTable[stateIdx] || [0, 0, 0, 0]; // Get Q-values or defaults
+            const maxQ = Math.max(...qValues); // Find the best Q-value
+
+            // Find all actions that have this maximum Q-value (there might be ties)
+            const bestActions = [];
+            for (let i = 0; i < qValues.length; i++) {
+                if (qValues[i] === maxQ) {
+                    bestActions.push(i); // Add the index (action number) to the list
+                }
+            }
+            // Randomly choose one from the best actions (to break ties fairly)
+            return bestActions[Math.floor(Math.random() * bestActions.length)];
+        }
+    }
+
+    // The core Q-Learning update rule! Updates the Q-value for the state-action pair that was just performed.
+    function updateQTable(stateIdx, action, reward, nextStateIdx, done) {
+        // 1. Get the Q-value estimate BEFORE this step (the "Old Q")
+        const currentQ = getQValue(stateIdx, action);
+
+        // 2. Calculate the "learned value" from this step:
+        //    - If the episode is `done` (reached goal or obstacle), the future value is 0.
+        //    - Otherwise, it's the best Q-value the agent expects to get from the `nextState`.
+        const maxNextQ = done ? 0 : getMaxQValue(nextStateIdx);
+
+        // 3. Calculate the "target Q-value": Immediate reward + (discounted future reward estimate)
+        const targetQ = reward + DISCOUNT_FACTOR * maxNextQ;
+
+        // 4. Calculate the updated Q-value (the "New Q"):
+        //    NewQ = OldQ + LearningRate * (TargetQ - OldQ)
+        //    This moves the old Q-value slightly towards the target Q-value.
+        const newQ = currentQ + LEARNING_RATE * (targetQ - currentQ);
+
+        // 5. Store the updated Q-value back into the Q-table.
+        //    If this state hasn't been visited before, initialize its Q-value array first.
+        if (!qTable[stateIdx]) {
+            qTable[stateIdx] = [0, 0, 0, 0];
+        }
+        qTable[stateIdx][action] = newQ; // Update the specific action's Q-value
+    }
+
+    // --- Simulating One Step of the Agent ---
+
+    // This function simulates the agent taking a single action and the environment reacting.
+    // `runMode` tells it if it's 'training' (update Q-table) or 'greedy' (don't update).
+    function takeStep(runMode) {
+        // Ensure the global isTraining flag matches the mode for this step
+        isTraining = (runMode === 'training');
+
+        // Remember the agent's position *before* moving
+        const currentState = { ...agentPos };
+        const currentStateIdx = stateToIndex(currentState);
+
+        // Decide which action to take (explores if training, exploits if greedy)
+        const action = chooseAction(currentStateIdx);
+        // Get the change in {r, c} corresponding to that action
+        const delta = ACTION_DELTAS[action];
+
+        // Calculate the potential next position
+        let nextPos = { r: currentState.r + delta.r, c: currentState.c + delta.c };
+        // Assume a standard step penalty initially
+        let reward = REWARD_STEP;
+        // Assume the episode is not done yet
+        let done = false;
+
+        // --- Check the outcome of the move ---
+        if (!isValid(nextPos.r, nextPos.c)) {
+            // Agent tried to move off the grid.
+            nextPos = { ...currentState }; // Agent stays in the same place.
+            // Reward is still REWARD_STEP (penalty for trying).
+        } else if (grid[nextPos.r][nextPos.c] === -1) {
+            // Agent hit an obstacle.
+            reward = REWARD_OBSTACLE; // Assign obstacle penalty.
+            done = true;               // The episode ends immediately.
+            nextPos = { ...currentState }; // Agent effectively stays put (doesn't enter obstacle square).
+        } else if (nextPos.r === goalPos.r && nextPos.c === goalPos.c) {
+            // Agent reached the goal!
+            reward = REWARD_GOAL; // Assign goal reward.
+            done = true;          // The episode ends.
+            agentPos = { ...nextPos }; // Update agent's position *to* the goal square.
+        } else {
+            // Valid move to an empty square.
+            agentPos = { ...nextPos }; // Update agent's position.
+            // Reward is still REWARD_STEP.
+        }
+
+        // Get the index of the state the agent *ended up in* after the move.
+        const nextStateIdx = stateToIndex(agentPos);
+
+        // *** If we are in training mode, update the Q-table based on this experience! ***
+        if (isTraining) {
+             updateQTable(currentStateIdx, action, reward, nextStateIdx, done);
+        }
+
+        // Update the total reward for the episode and the step count
+        episodeReward += reward;
+        currentStep++;
+        // Add the agent's new position to the path trace for visualization
+        episodePath.push({ ...agentPos });
+
+        // Return information about what happened in this step
+        return { done, hitObstacle: (reward === REWARD_OBSTACLE), reachedGoal: (reward === REWARD_GOAL) };
+    }
+
+
+    // --- Controlling the Flow of Simulation (Loops) ---
+
+    // Runs a single episode from start to finish (until goal, obstacle, or max steps).
+    // Takes 'training' or 'greedy' as the mode.
+    // Uses async/await and Promises to handle the step delay for animation.
+    function runEpisode(runMode) {
+        // Return a Promise, which signals when the episode is truly finished.
+        return new Promise(async (resolve) => {
+            resetAgent(); // Put the agent back at the start
+            let stepResult = {}; // To store the outcome of each step
+
+            // Loop until the maximum steps are reached for this episode
+            while (currentStep < MAX_STEPS_PER_EPISODE) {
+                // ** Check if the user clicked the "Stop" button **
+                if (!isRunning) {
+                     setStatus('Stopped.'); // Update status message
+                     // Signal that the episode did not finish naturally
+                     resolve({ finished: false, totalReward: episodeReward });
+                     return; // Exit the function immediately
+                }
+
+                // Execute one step of the agent/environment interaction
+                stepResult = takeStep(runMode);
+
+                // Redraw the entire grid to show the agent's new position and Q-arrows
+                drawGrid();
+                // Update the text information (Episode, Step, Reward, Epsilon)
+                updateInfoDisplay();
+
+                // If the step resulted in the episode ending (goal or obstacle)...
+                if (stepResult.done) {
+                    break; // ...exit the step loop for this episode.
+                }
+
+                // PAUSE here for animation effect before the next step
+                await sleep(stepDelay);
+            }
+
+            // Episode finished (either by reaching goal/obstacle or hitting max steps)
+            // Signal that the episode finished and pass back the total reward collected.
+            resolve({ finished: true, totalReward: episodeReward });
+        });
+    }
+
+
+     // The main function to start and manage the training process over many episodes.
+     async function startTrainingLoop() {
+        if (isRunning) return; // Don't start if already running
+        isRunning = true;      // Set the flag indicating simulation is active
+        isTraining = true;     // We are definitely in training mode now
+        setStatus('Training...', 'training'); // Update status display
+
+        // Update button states: Disable Start/Reset/Greedy, enable Stop
+        startTrainingBtn.disabled = true;
+        stopTrainingBtn.disabled = false;
+        runGreedyBtn.disabled = true;
+        resetEnvBtn.disabled = true;
+
+        // Loop for the maximum number of episodes
+        while (currentEpisode < MAX_EPISODES && isRunning) {
+            currentEpisode++; // Increment episode counter
+
+            // Run one full episode in 'training' mode and wait for it to finish
+            const result = await runEpisode('training');
+
+            // If the episode was stopped early by the user, break the training loop
+            if (!result.finished) break;
+
+            // After a training episode, decay the exploration rate (epsilon)
+            if (epsilon > MIN_EPSILON) {
+                epsilon *= EPSILON_DECAY; // Multiply by decay factor (e.g., 0.998)
+            }
+
+            // Keep track of rewards from recent episodes for the average display
+            recentRewards.push(result.totalReward);
+            if(recentRewards.length > REWARD_AVERAGE_WINDOW) {
+                recentRewards.shift(); // Remove the oldest reward if window is full
+            }
+
+            // Update the text displays after the episode finishes
+            updateInfoDisplay();
+
+             // Small pause between episodes to allow the browser to remain responsive
+            await sleep(1);
+        }
+
+        // Training loop finished (either completed all episodes or was stopped)
+        if (isRunning) { // If it finished naturally (wasn't stopped)
+            setStatus('Training Finished.', 'finished');
+        }
+        isRunning = false; // Reset the running flag
+
+        // Reset button states
+        startTrainingBtn.disabled = false;
+        stopTrainingBtn.disabled = true;
+        runGreedyBtn.disabled = false;
+        resetEnvBtn.disabled = false;
+    }
+
+     // Runs a single episode using the learned Q-values without any exploration (epsilon=0).
+     async function runGreedyPolicy() {
+        if (isRunning) return; // Don't start if already running
+        isRunning = true;      // Set running flag
+        isTraining = false;    // CRITICAL: Ensure Q-table is NOT updated, and actions are greedy
+        setStatus('Running Greedy Policy...', 'greedy');
+
+        // Update button states
+        startTrainingBtn.disabled = true;
+        stopTrainingBtn.disabled = true; // Can't stop a greedy run (it's usually fast)
+        runGreedyBtn.disabled = true;
+        resetEnvBtn.disabled = true;
+
+        // Run one episode in 'greedy' mode and wait for it to finish
+        await runEpisode('greedy');
+
+        setStatus('Greedy Policy Run Finished.', 'finished');
+        isRunning = false; // Reset running flag
+
+        // Reset button states
+        startTrainingBtn.disabled = false;
+        stopTrainingBtn.disabled = true;
+        runGreedyBtn.disabled = false;
+        resetEnvBtn.disabled = false;
+    }
+
+    // Called when the "Stop Training" button is clicked.
+    function stopTraining() {
+        isRunning = false; // Set the flag to false. The running loops will check this flag and exit.
+        setStatus('Stopping...', 'stopped'); // Update status message
+        // Note: Buttons are re-enabled when the loop actually detects the flag and exits.
+        stopTrainingBtn.disabled = true; // Temporarily disable stop button to prevent multi-clicks
+    }
+
+
+    // --- Updating the Text Information Display ---
+
+    // Updates all the text spans below the grid with the current simulation state.
+    function updateInfoDisplay() {
+        // Keep the existing status message text unless changed by setStatus
+        statusDisplay.textContent = statusDisplay.textContent;
+        // Update episode count, step count, reward, epsilon
+        episodeDisplay.textContent = currentEpisode;
+        totalEpisodesDisplay.textContent = MAX_EPISODES;
+        stepsDisplay.textContent = currentStep;
+        rewardDisplay.textContent = episodeReward.toFixed(0); // Show reward as integer
+        epsilonDisplay.textContent = epsilon.toFixed(3);      // Show epsilon with 3 decimal places
+
+        // Calculate and display the average reward over the last N episodes
+        if (recentRewards.length > 0) {
+            const avg = recentRewards.reduce((a, b) => a + b, 0) / recentRewards.length;
+            avgRewardDisplay.textContent = avg.toFixed(2); // Show average with 2 decimal places
+        } else {
+             avgRewardDisplay.textContent = "N/A"; // Show N/A if no rewards yet
+        }
+    }
+
+    // Sets the main status message text and optionally applies a CSS class for color.
+    function setStatus(message, className = '') {
+        statusDisplay.textContent = message; // Set the text
+        statusDisplay.className = className; // Apply the CSS class (e.g., 'training', 'finished')
+    }
+
+
+    // --- Connecting Buttons and Sliders to Functions (Event Listeners) ---
+    // This is where we tell the browser what to do when the user interacts with the controls.
+
+    // When the Grid Size dropdown selection changes...
+    gridSizeSelect.addEventListener('change', (e) => {
+        GRID_SIZE = parseInt(e.target.value); // Update GRID_SIZE variable
+        CELL_SIZE = canvas.width / GRID_SIZE; // Recalculate cell pixel size
+        MAX_STEPS_PER_EPISODE = GRID_SIZE * GRID_SIZE * 1.5; // Update max steps
+        initializeEnvironment(); // Reset and redraw the entire environment with the new size
+    });
+
+    // When the Obstacle Probability slider value changes (while sliding)...
+    obstacleProbSlider.addEventListener('input', (e) => {
+        const value = parseInt(e.target.value); // Get slider value (0-50)
+        OBSTACLE_PROB = value / 100;            // Update probability (0-0.5)
+        obstacleProbValueSpan.textContent = `${value}%`; // Update text display next to slider
+        // Note: Environment is NOT automatically reset here. User needs to click "Reset Environment".
+    });
+
+    // When the "Reset Environment" button is clicked...
+    resetEnvBtn.addEventListener('click', () => {
+        if (isRunning) { // Prevent resetting while simulation is active
+            alert("Cannot reset while training or running!");
+            return;
+        }
+        initializeEnvironment(); // Reset everything
+    });
+
+    // When the Speed slider value changes (while sliding)...
+    speedSlider.addEventListener('input', (e) => {
+        // Update the speed text ("Fast", "Slow") and the actual stepDelay variable
+        updateSpeedDisplay(parseInt(e.target.value));
+    });
+
+    // When the "Start Training" button is clicked...
+    startTrainingBtn.addEventListener('click', startTrainingLoop);
+    // When the "Stop Training" button is clicked...
+    stopTrainingBtn.addEventListener('click', stopTraining);
+    // When the "Run Greedy Policy" button is clicked...
+    runGreedyBtn.addEventListener('click', runGreedyPolicy);
+
+    // --- Initial Setup When Page Loads ---
+
+    // Set the initial text displays for sliders based on their default values
+    updateSpeedDisplay(parseInt(speedSlider.value));
+    obstacleProbValueSpan.textContent = `${obstacleProbSlider.value}%`;
+    // Create the very first grid environment when the page finishes loading.
+    initializeEnvironment();
+
+// End of the main 'DOMContentLoaded' function scope
+});
