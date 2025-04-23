@@ -3,48 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Q-Learning Grid World Visualization</title>
+    <title>Advanced Q-Learning Visualization</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Q-Learning Agent Navigation</h1>
+    <header>
+        <h1>Q-Learning Agent Navigation</h1>
+        <p>Visualizing Reinforcement Learning in a Grid World</p>
+    </header>
 
-    <div class="controls">
-        <label for="gridSize">Grid Size:</label>
-        <select id="gridSize">
-            <option value="5">5x5</option>
-            <option value="6" selected>6x6</option>
-            <option value="8">8x8</option>
-            <option value="10">10x10</option>
-        </select>
+    <main class="container">
+        <section class="controls-panel top-controls">
+            <div class="control-group">
+                <label for="gridSize">Grid Size:</label>
+                <select id="gridSize">
+                    <option value="5">5x5</option>
+                    <option value="6">6x6</option>
+                    <option value="8" selected>8x8</option>
+                    <option value="10">10x10</option>
+                    <option value="12">12x12</option>
+                </select>
+            </div>
+            <div class="control-group range-group">
+                <label for="obstacleProb">Obstacle %:</label>
+                <input type="range" id="obstacleProb" min="0" max="50" value="20" step="1">
+                <span id="obstacleProbValue">20%</span>
+            </div>
+             <div class="control-group">
+                <button id="resetEnvBtn" class="btn btn-secondary">Reset Environment</button>
+            </div>
+        </section>
 
-        <label for="obstacleProb">Obstacle %:</label>
-        <input type="range" id="obstacleProb" min="0" max="50" value="15">
-        <span id="obstacleProbValue">15%</span>
+        <section class="visualization-area">
+            <canvas id="gridCanvas" width="520" height="520"></canvas>
+        </section>
 
-        <button id="resetEnvBtn">Reset Environment</button>
-    </div>
+        <section class="controls-panel bottom-controls">
+             <div class="control-group range-group">
+                 <label for="speed">Speed:</label>
+                 <input type="range" id="speed" min="10" max="1000" value="250" step="10">
+                 <span id="speedValue">Medium</span>
+            </div>
+            <div class="control-group">
+                <button id="startTrainingBtn" class="btn btn-primary">Start Training</button>
+                <button id="stopTrainingBtn" class="btn btn-danger" disabled>Stop Training</button>
+            </div>
+             <div class="control-group">
+                 <button id="runGreedyBtn" class="btn btn-success">Run Greedy Policy</button>
+            </div>
+             <div class="control-group toggle-group">
+                 <label for="showQArrows">Show Q-Arrows:</label>
+                 <input type="checkbox" id="showQArrows" checked>
+                 <label for="showHeatmap">Show Value Heatmap:</label>
+                 <input type="checkbox" id="showHeatmap" checked>
+                  <label for="showPath">Show Path:</label>
+                 <input type="checkbox" id="showPath" checked>
+            </div>
+        </section>
 
-    <canvas id="gridCanvas" width="480" height="480"></canvas>
+        <section id="info-panel">
+             <h2>Simulation Info</h2>
+             <div class="info-grid">
+                <p>Status:</p><p><span id="statusDisplay">Initialized. Ready.</span></p>
+                <p>Episode:</p><p><span id="episodeDisplay">0</span>/<span id="totalEpisodesDisplay">1500</span></p>
+                <p>Step:</p><p><span id="stepsDisplay">0</span></p>
+                <p>Episode Reward:</p><p><span id="rewardDisplay">0</span></p>
+                <p>Avg Reward (Last 50):</p><p><span id="avgRewardDisplay">N/A</span></p>
+                 <p>Epsilon (Explore %):</p><p><span id="epsilonDisplay">1.000</span></p>
+                 <p>Global Max Q:</p><p><span id="globalMaxQDisplay">0.0</span></p>
+                 <p>Global Min Q:</p><p><span id="globalMinQDisplay">0.0</span></p>
+            </div>
+        </section>
+    </main>
 
-    <div class="controls">
-         <label for="speed">Speed:</label>
-         <input type="range" id="speed" min="10" max="1000" value="100" step="10">
-         <span id="speedValue">Fast</span>
-
-        <button id="startTrainingBtn">Start Training</button>
-        <button id="stopTrainingBtn" disabled>Stop Training</button>
-        <button id="runGreedyBtn">Run Greedy Policy</button>
-    </div>
-
-     <div id="info">
-        <p>Status: <span id="statusDisplay">Initialized. Ready to train.</span></p>
-        <p>Episode: <span id="episodeDisplay">0</span>/<span id="totalEpisodesDisplay">1000</span></p>
-        <p>Step: <span id="stepsDisplay">0</span></p>
-        <p>Total Reward (Episode): <span id="rewardDisplay">0</span></p>
-        <p>Epsilon (Explore %): <span id="epsilonDisplay">1.000</span></p>
-        <p>Avg Reward (Last 50): <span id="avgRewardDisplay">N/A</span></p>
-    </div>
+    <footer>
+        <p>A Q-Learning demonstration using HTML Canvas and JavaScript.</p>
+    </footer>
 
     <script src="script.js"></script>
 </body>
