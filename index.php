@@ -1,68 +1,98 @@
-<?php 
-
-    # database connection file
-	include 'db.conn.php';
-
-	# fetching images
-	$sql  = "SELECT img_name FROM
-	         images ORDER BY id DESC";
-
-	$stmt = $conn->prepare($sql);
-	$stmt->execute();
-
-	$images = $stmt->fetchAll();
-
- ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Multi Image Upload</title>
-	<style>
-		body {
-			display: flex;
-			align-items: center;
-			flex-direction: column;
-			font-family: 'Roboto',sans-serif;
-		}
-		.error {
-			color: #a00;
-		}
-		.gallery img{
-            width: 127px;
-		}
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For Surovi - I'm Truly Sorry</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-	<form method="post" 
-	      action="upload.php"
-	      enctype="multipart/form-data">
 
-	    <?php  
-            if (isset($_GET['error'])) {
-            	echo "<p class='error'>";
-            	    echo htmlspecialchars($_GET['error']);
-            	echo "</p>";
-            }
-	    ?>
+    <div class="background-overlay"></div>
 
-		<input type="file"
-		       name="images[]"
-		       multiple>
+    <header class="fade-in">
+        <h1>To My Dearest Surovi,</h1>
+    </header>
 
-		<button type="submit"
-		        name="upload">
-		    Upload</button>
-	</form>
-    <?php if ($stmt->rowCount() > 0) { ?>
-	<div class="gallery">
-		<h4>All Images</h4>
-		<?php foreach ($images as $image) { ?>
-		   <img src="uploads/<?=$image['img_name']?>">
-		<?php } ?>
-	</div>
-	<?php } ?>
+    <main>
+        <section class="apology-section fade-in">
+            <h2>I Am So Incredibly Sorry.</h2>
+            <p>
+                Words feel inadequate right now, but I need you to know how deeply I regret
+                <!-- **** IMPORTANT: Replace this with SPECIFICALLY what you are sorry for **** -->
+                [Describe what you did wrong and the situation clearly and honestly. Avoid excuses.].
+                <!-- **** END OF IMPORTANT SECTION **** -->
+                There's no excuse for my actions/words, and I understand that I've hurt you. Seeing you upset because of me is the worst feeling in the world.
+            </p>
+        </section>
+
+        <section class="reflection-section fade-in">
+            <h3>I Understand Why You're Hurt</h3>
+            <p>
+                I've been thinking a lot about what happened, and I realize
+                <!-- **** IMPORTANT: Explain WHY you think she's hurt. Show empathy. **** -->
+                [Explain the impact of your actions from HER perspective. Show you've thought about her feelings. E.g., "...how my words must have made you feel disregarded/unimportant/etc."]
+                <!-- **** END OF IMPORTANT SECTION **** -->
+                Your feelings are valid, and I hate that I'm the reason for your pain.
+            </p>
+        </section>
+
+        <section class="responsibility-section fade-in">
+            <h3>Taking Full Responsibility</h3>
+            <p>
+                This is entirely on me. I take full responsibility for
+                <!-- **** IMPORTANT: Reiterate taking responsibility clearly **** -->
+                [Briefly restate the core issue you caused, e.g., "...my carelessness," "...my harsh words," "...not listening properly."].
+                <!-- **** END OF IMPORTANT SECTION **** -->
+                I wish I could turn back time and handle things differently, but since I can't, I want to focus on making things right, starting now.
+            </p>
+        </section>
+
+        <section class="memories-section fade-in">
+            <h3>You Mean Everything To Me</h3>
+            <p>
+                Please don't let this overshadow everything we are. Remember
+                <!-- **** IMPORTANT: Add a positive shared memory or inside joke **** -->
+                [Mention a specific happy memory, inside joke, or something you cherish about her/your relationship. E.g., "...that time we [did something fun]?" or "...how much I love your [specific quality]?"]?
+                <!-- **** END OF IMPORTANT SECTION **** -->
+                Those moments, and you, mean the world to me. My life is infinitely better with you in it, Surovi. You bring so much [mention specific positive things: joy, laughter, perspective, etc.] to my life.
+            </p>
+            <!-- Optional: Add an image -->
+            <!-- <img src="path/to/a/nice/photo_of_you_two.jpg" alt="A cherished moment" class="memory-image fade-in"> -->
+        </section>
+
+        <section class="commitment-section fade-in">
+            <h3>My Promise To You</h3>
+            <p>
+                I am committed to learning from this and being a better partner. I promise to
+                <!-- **** IMPORTANT: State specific, actionable changes you will make **** -->
+                [Be specific about how you will change your behavior. E.g., "...listen more attentively," "...think before I speak," "...be more considerate of your feelings," "...communicate more openly."].
+                <!-- **** END OF IMPORTANT SECTION **** -->
+                I value you and our relationship too much to let my mistakes define us. I want to earn back your trust.
+            </p>
+        </section>
+
+        <section class="forgiveness-section fade-in">
+            <h2>Can You Forgive Me?</h2>
+            <p>
+                I know I messed up, Surovi. All I can ask is if you can find it in your heart to forgive me, maybe not right away, but eventually. I hope we can talk properly soon.
+            </p>
+            <p>With all my love and deepest apologies,</p>
+            <p class="signature">
+                <!-- **** IMPORTANT: Put your name here **** -->
+                [Your Name]
+            </p>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>© Just For You, Surovi.</p>
+    </footer>
+
+    <script src="script.js"></script>
 </body>
 </html>
