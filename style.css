@@ -1,0 +1,373 @@
+/* Basic Reset & Body Styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    background-color: #f4f7f6;
+    color: #333;
+    padding: 20px;
+}
+
+#app {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Contains floating elements if any */
+}
+
+header {
+    background-color: #4a90e2; /* Professional blue */
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+header h1 {
+    margin-bottom: 5px;
+}
+
+main {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.card {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.07);
+}
+
+.card h2 {
+    margin-bottom: 15px;
+    color: #4a90e2;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 5px;
+}
+
+/* File Upload Section */
+#upload-area {
+    border: 2px dashed #ccc;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 15px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#upload-area:hover {
+    background-color: #eef;
+    border-color: #4a90e2;
+}
+
+#upload-area.dragover {
+     background-color: #d0e0f5;
+     border-color: #2a6dbf;
+}
+
+button {
+    padding: 10px 18px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
+    margin: 5px;
+}
+
+button:hover:not(:disabled) {
+    background-color: #357abd;
+}
+
+button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.info-box {
+    background-color: #eef;
+    border: 1px solid #d0e0f5;
+    padding: 10px 15px;
+    margin-top: 15px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.info-box h3 {
+    margin-bottom: 8px;
+    font-size: 1em;
+    color: #357abd;
+}
+
+.info-box p {
+    margin-bottom: 3px;
+}
+
+.dialect-selection, #project-management {
+    margin-top: 15px;
+}
+
+label {
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+select, input[type="text"] {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-right: 10px;
+    min-width: 150px;
+}
+
+/* Editor Section */
+#waveform-controls {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+#current-time-display {
+    font-family: monospace;
+    font-size: 1.1em;
+    background-color: #eee;
+    padding: 5px 8px;
+    border-radius: 3px;
+    min-width: 80px; /* Ensure space */
+    text-align: right;
+}
+
+#waveform-container {
+    position: relative;
+    width: 100%;
+    height: 200px; /* Adjust height as needed */
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    overflow-x: scroll; /* Enable horizontal scrolling */
+    cursor: crosshair;
+    border-radius: 4px;
+}
+
+#waveform-canvas {
+    display: block;
+    height: 100%;
+    background-color: #282c34; /* Dark background for waveform */
+}
+
+#playhead {
+    position: absolute;
+    top: 0;
+    left: 0; /* Position updated by JS */
+    width: 2px;
+    height: 100%;
+    background-color: red;
+    pointer-events: none; /* Don't interfere with clicks */
+    display: none; /* Shown during playback */
+    z-index: 5;
+}
+
+#selection-overlay {
+    position: absolute;
+    top: 0;
+    left: 0; /* Position updated by JS */
+    width: 0; /* Width updated by JS */
+    height: 100%;
+    background-color: rgba(74, 144, 226, 0.3); /* Semi-transparent blue */
+    border: 1px solid #4a90e2;
+    pointer-events: none;
+    display: none;
+    z-index: 3;
+}
+
+.segment-highlight {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background-color: rgba(0, 0, 255, 0.2); /* Default color */
+    border-left: 1px dashed black;
+    border-right: 1px dashed black;
+    pointer-events: all; /* Allow interaction */
+    cursor: grab;
+    z-index: 2;
+}
+
+.segment-handle {
+    position: absolute;
+    top: 0;
+    width: 6px; /* Wider for easier grabbing */
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    cursor: col-resize;
+    z-index: 4;
+}
+
+.segment-handle.left {
+    left: -3px; /* Center the handle */
+}
+
+.segment-handle.right {
+    right: -3px; /* Center the handle */
+}
+
+
+#segmentation-controls {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+#assign-segment-controls {
+    margin-top: 10px;
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #eee;
+}
+
+
+/* Actors Panel */
+#actor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.actor-section {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 15px;
+}
+
+.actor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.actor-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.actor-color-swatch {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    border: 1px solid #555;
+}
+
+.segment-list {
+    list-style: none;
+    max-height: 200px; /* Scrollable list */
+    overflow-y: auto;
+    padding-right: 10px; /* Space for scrollbar */
+    margin-bottom: 15px;
+}
+
+.segment-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 5px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.segment-list li:hover, .segment-list li.selected {
+    background-color: #e0e0f5;
+}
+
+.segment-time {
+    font-family: monospace;
+    font-size: 0.9em;
+    min-width: 130px; /* Align times */
+}
+
+.segment-actions button {
+    padding: 3px 6px;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+.subtitle-editor {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.subtitle-editor textarea {
+    width: 100%;
+    min-height: 60px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+/* Footer */
+footer {
+    padding: 15px 20px;
+    background-color: #e0e0e0;
+    border-top: 1px solid #ccc;
+    text-align: center;
+    font-size: 0.9em;
+    color: #555;
+    position: relative; /* For progress indicator positioning */
+}
+
+#progress-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 100;
+}
+
+.tooltip {
+    font-size: 0.8em;
+    color: #666;
+    margin-left: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    main {
+        padding: 10px;
+    }
+    button {
+        padding: 8px 12px;
+        font-size: 0.9em;
+    }
+    #waveform-container {
+        height: 150px;
+    }
+}

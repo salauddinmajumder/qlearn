@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regional Bangla Audio Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Regional Bangla Audio Editor</h1>
+            <p>Manually segment multi-actor audio, add subtitles, and export for ML training.</p>
+        </header>
+
+        <main>
+            <section id="file-section" class="card">
+                <h2>1. Load Audio & Project</h2>
+                <div id="upload-area">
+                    <input type="file" id="audio-file-input" accept=".wav, .mp3" style="display: none;">
+                    <button id="upload-button">Upload Audio File (.wav, .mp3)</button>
+                    <p>Or drag & drop here</p>
+                </div>
+                <div id="file-info" class="info-box" style="display: none;">
+                    <h3>Audio Information</h3>
+                    <p><strong>Name:</strong> <span id="file-name">-</span></p>
+                    <p><strong>Duration:</strong> <span id="file-duration">-</span>s</p>
+                    <p><strong>Size:</strong> <span id="file-size">-</span> MB</p>
+                    <p><strong>Sample Rate:</strong> <span id="file-sample-rate">-</span> Hz</p>
+                </div>
+                <div class="dialect-selection">
+                    <label for="dialect-select">Select Dialect:</label>
+                    <select id="dialect-select">
+                        <option value="chittagong">Chittagong</option>
+                        <option value="sylhet">Sylhet</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div id="project-management">
+                     <button id="save-project-button" disabled>Save Project State</button>
+                     <input type="file" id="project-file-input" accept=".json" style="display: none;">
+                     <button id="load-project-button">Load Project State</button>
+                     <p class="tooltip">Load audio *before* loading project state.</p>
+                </div>
+            </section>
+
+            <section id="editor-section" class="card" style="display: none;">
+                <h2>2. Visualize & Segment</h2>
+                <div id="waveform-controls">
+                    <button id="play-pause-button" title="Play/Pause (Space)">▶ Play</button>
+                    <button id="zoom-in-button" title="Zoom In (+)">Zoom +</button>
+                    <button id="zoom-out-button" title="Zoom Out (-)">Zoom -</button>
+                     <span id="current-time-display">0.000s</span>
+                </div>
+                <div id="waveform-container">
+                    <canvas id="waveform-canvas"></canvas>
+                    <div id="playhead"></div>
+                    <div id="selection-overlay"></div>
+                </div>
+                <div id="segmentation-controls">
+                     <label for="new-actor-name">New Actor Name:</label>
+                     <input type="text" id="new-actor-name" placeholder="e.g., Speaker 1">
+                     <button id="add-actor-button">Add Actor</button>
+                     <div id="assign-segment-controls" style="display: none;">
+                         <span>Assign selection (<span id="selection-time"></span>) to:</span>
+                         <select id="actor-assignment-dropdown"></select>
+                         <button id="assign-segment-button">Assign</button>
+                         <button id="clear-selection-button">Clear Selection</button>
+                     </div>
+                </div>
+            </section>
+
+            <section id="actors-panel" class="card" style="display: none;">
+                 <h2>3. Manage Actors, Subtitles & Export</h2>
+                 <div id="actor-list">
+                     <!-- Actor details will be added here dynamically -->
+                 </div>
+            </section>
+        </main>
+
+        <footer>
+             <div id="status-message" class="info-box">Status: Ready. Upload an audio file.</div>
+             <div id="progress-indicator" style="display: none;">Processing...</div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
